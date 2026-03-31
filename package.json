@@ -41,8 +41,14 @@
     "tempy": "^3.2.0"
   },
   "devDependencies": {
+    "@types/hosted-git-info": "^3.0.5",
+    "@types/lodash-es": "^4.17.12",
     "@types/node": "^25.5.0",
+    "@types/npmcli__package-json": "^4.0.4",
+    "@types/prompts": "^2.4.9",
+    "@types/semver": "^7.7.1",
     "prettier": "^3.8.1",
+    "tsdown": "^0.21.7",
     "typescript": "^6.0.2",
     "vitepress": "^2.0.0-alpha.17"
   },
