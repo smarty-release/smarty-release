@@ -2,24 +2,10 @@ import { runHook } from "./hooks.js";
 import { formatDuration, createTimer } from "./timer.js";
 import { logger } from "./utils/index.js";
 import { merge } from "lodash-es";
-import defaultsConf from "./defaults.js";
-import chalk from "chalk";
+import defaultsConf, { type Config } from "./defaults.js";
 
-import {
-  selectVersion,
-  selectTag,
-  bump,
-  gitAdd,
-  gitCommit,
-  gitTag,
-  gitPush,
-  collectContext,
-  summary,
-  genChangelog,
-} from "./steps/index.js";
-
-export async function release(config = {}) {
-  config = merge({}, defaultsConf, config);
+export async function release(config: Partial<Config> = {}) {
+  config = merge({}, defaultsConf, config) as Config;
 
   const ctx = await collectContext(config);
   const timer = createTimer();
