@@ -1,5 +1,4 @@
+dist
 node_modules
-
-release-pls-*.tgz
 docs/.vitepress/dist
 docs/.vitepress/cache
