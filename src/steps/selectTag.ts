@@ -1,6 +1,6 @@
 import prompts from "prompts";
 import semver from "semver";
-import { CancelledError } from "../errors.js";
+import { CancelledError } from "../errors.ts";
 
 export async function selectTag(config, ctx) {
   const isPrerelease = !!semver.prerelease(ctx.version);

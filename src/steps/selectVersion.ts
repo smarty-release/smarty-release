@@ -1,5 +1,5 @@
 import prompts from "prompts";
-import { CancelledError } from "../errors.js";
+import { CancelledError } from "../errors.ts";
 import semver from "semver";
 
 const { inc, valid, prerelease } = semver;

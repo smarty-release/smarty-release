@@ -1,4 +1,4 @@
-import { run, renderTemplate } from "../utils/index.js";
+import { run, renderTemplate } from "../utils/index.ts";
 import ora from "ora";
 
 export async function gitAdd(config, ctx) {

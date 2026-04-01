@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { release } from "./index.js";
-import { loadConfig } from "./config.js";
+import { release } from "./commands/release.ts";
+import { loadConfig } from "./config/index.ts";
 import { NAME } from "./constants/index.js";
 import { logger } from "./utils/index.js";
-import { changelog } from "./changelog.js";
+import { changelog } from "./commands/changelog.ts";
 import pkg from "../package.json" with { type: "json" };
 import { CancelledError } from "./errors.js";
 const program = new Command();

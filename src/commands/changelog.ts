@@ -1,5 +1,5 @@
 import { merge } from "lodash-es";
-import defaultsConf from "./defaults.js";
+import defaultsConf from "../config/defaults.ts";
 import { temporaryFile } from "tempy";
 import { writeFile, unlink, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -34,7 +34,7 @@ function filterArgs(input) {
       arg !== "-c" &&
       !arg.startsWith("--config=") &&
       arr[i - 1] !== "--config" &&
-      arr[i - 1] !== "-c"
+      arr[i - 1] !== "-c",
   );
 }
 
@@ -51,7 +51,7 @@ async function resolveTemplateConfig(template) {
     __dirname,
     "..",
     "templates",
-    `${templateName}.toml`
+    `${templateName}.toml`,
   );
 
   if (!existsSync(defaultTplPath)) {

@@ -1,5 +1,5 @@
 import prompts from "prompts";
-import { CancelledError } from "../errors.js";
+import { CancelledError } from "../errors.ts";
 import {
   workerDirRestore,
   gitChangeset,
@@ -44,7 +44,7 @@ export async function summary(config, ctx) {
       onCancel() {
         throw new CancelledError();
       },
-    }
+    },
   );
 
   if (ok === false) {
