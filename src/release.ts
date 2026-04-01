@@ -5,7 +5,7 @@ import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
 import type { PartialDeep, RequiredDeep, ReadonlyDeep } from "type-fest";
-import { UserConfig } from "./config.ts";
+import type { UserConfig, ReleaseContext } from "./config.ts";
 
 import {
   selectVersion,
@@ -23,7 +23,7 @@ import {
 export async function release(config: UserConfig = {}) {
   config = merge({}, defaultsConf, config);
 
-  const ctx = await collectContext(config);
+  const ctx: ReleaseContext = await collectContext(config);
   const timer = createTimer();
 
   // 流程开始

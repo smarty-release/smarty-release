@@ -1,9 +1,12 @@
-import { execa } from "execa";
+import { execa, type Options } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
 
-export const run = (bin, args, opts = {}) =>
-  execa(bin, args, { stdio: "pipe", ...opts });
+export const run = (
+  bin: string,
+  args: readonly string[] = [],
+  opts: Options = {},
+): ReturnType<typeof execa> => execa(bin, args, { stdio: "pipe", ...opts });
 
 export const logger = createConsola({
   defaults: {

@@ -265,9 +265,9 @@ export interface UserConfig {
  */
 export interface ReleaseContext {
   cwd?: string;
-  env: NodeJS.ProcessEnv;
-  name: string;
-  version: string;
+  env?: NodeJS.ProcessEnv;
+  name?: string;
+  version?: string;
 
   git?: {
     branch: string;
@@ -286,13 +286,13 @@ export interface InlineConfig {
 
 src/config.ts内容如下：
 
-import type { UserConfig } from "./config/index.ts";
+import type { UserConfig, ReleaseContext } from "./config/index.ts";
 
 export function defineConfig(options: UserConfig): UserConfig {
   return options;
 }
 
-export type { UserConfig };
+export type { UserConfig, ReleaseContext };
 
 
 src/constants/index.ts内容如下：
@@ -387,6 +387,8 @@ import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
+import type { PartialDeep, RequiredDeep, ReadonlyDeep } from "type-fest";
+import type { UserConfig, ReleaseContext } from "./config.ts";
 
 import {
   selectVersion,
@@ -401,10 +403,10 @@ import {
   genChangelog,
 } from "./steps/index.ts";
 
-export async function release(config = {}) {
+export async function release(config: UserConfig = {}) {
   config = merge({}, defaultsConf, config);
 
-  const ctx = await collectContext(config);
+  const ctx: ReleaseContext = await collectContext(config);
   const timer = createTimer();
 
   // 流程开始
@@ -420,7 +422,7 @@ export async function release(config = {}) {
   await runHook(config.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (!config.changelog.disable) {
+  if (config.changelog !== false) {
     await runHook(config.hooks?.["before:changelog"], ctx);
     await genChangelog(config, ctx);
     await runHook(config.hooks?.["after:changelog"], ctx);
@@ -488,9 +490,10 @@ import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { UserConfig, ReleaseContext } from "../config/types.ts";
 
-export async function collectContext(config) {
-  const ctx = {
+export async function collectContext(config: UserConfig) {
+  const ctx: ReleaseContext = {
     cwd: process.cwd(),
     env: process.env,
   };
@@ -506,7 +509,7 @@ export async function collectContext(config) {
   return ctx;
 }
 
-async function collectPackageContext(config, ctx) {
+async function collectPackageContext(config: UserConfig, ctx: ReleaseContext) {
   const pkgPath = resolve(ctx.cwd, "package.json");
 
   let pkg;
@@ -529,7 +532,7 @@ async function collectPackageContext(config, ctx) {
   });
 }
 
-async function collectGitContext(config, ctx) {
+async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
   const { stdout: branch } = await execa("git", [
     "rev-parse",
     "--abbrev-ref",
@@ -543,7 +546,7 @@ async function collectGitContext(config, ctx) {
   await assertAllowedBranch(config, ctx);
 }
 
-async function collectRepoContext(config, ctx) {
+async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
   let remoteUrl;
 
   try {
@@ -562,7 +565,7 @@ async function collectRepoContext(config, ctx) {
   });
 }
 
-async function assertAllowedBranch(config, ctx) {
+async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
   const { requireBranch } = config.git;
 
   if (!requireBranch) return;

@@ -4,12 +4,16 @@ import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { UserConfig, ReleaseContext } from "../config/types.ts";
 
-export async function collectContext(config) {
-  const ctx = {
+export async function collectContext(
+  config: UserConfig,
+): Promise<ReleaseContext> {
+  const ctx: ReleaseContext = {
     cwd: process.cwd(),
     env: process.env,
   };
+
   const { isGitRepo, isClean } = await checkGitRepoStatus();
 
   if (!isGitRepo) throw new NotGitRepoError();
@@ -22,8 +26,8 @@ export async function collectContext(config) {
   return ctx;
 }
 
-async function collectPackageContext(config, ctx) {
-  const pkgPath = resolve(ctx.cwd, "package.json");
+async function collectPackageContext(config: UserConfig, ctx: ReleaseContext) {
+  const pkgPath = resolve(ctx.cwd!, "package.json");
 
   let pkg;
   try {
@@ -45,7 +49,7 @@ async function collectPackageContext(config, ctx) {
   });
 }
 
-async function collectGitContext(config, ctx) {
+async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
   const { stdout: branch } = await execa("git", [
     "rev-parse",
     "--abbrev-ref",
@@ -59,7 +63,7 @@ async function collectGitContext(config, ctx) {
   await assertAllowedBranch(config, ctx);
 }
 
-async function collectRepoContext(config, ctx) {
+async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
   let remoteUrl;
 
   try {
@@ -78,16 +82,16 @@ async function collectRepoContext(config, ctx) {
   });
 }
 
-async function assertAllowedBranch(config, ctx) {
-  const { requireBranch } = config.git;
+async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
+  const { requireBranch } = config.git!;
 
   if (!requireBranch) return;
 
-  const current = ctx.git.branch;
+  const currentBranch = ctx.git!.branch;
 
-  if (!matchBranch(requireBranch, current)) {
+  if (!matchBranch(requireBranch, currentBranch)) {
     throw new Error(
-      `Release is only allowed on ${String(requireBranch)}, current: ${current}`,
+      `Release is only allowed on ${String(requireBranch)}, current: ${currentBranch}`,
     );
   }
 }

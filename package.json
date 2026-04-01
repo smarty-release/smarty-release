@@ -20,7 +20,7 @@
   },
   "main": "index.js",
   "bin": {
-    "release-pls": "src/cli.js"
+    "release-pls": "dist/cli.mjs"
   },
   "scripts": {
     "docs:build": "vitepress build docs",

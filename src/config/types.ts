@@ -1,8 +1,11 @@
+import type { PartialDeep } from "type-fest";
+
 type Hook = string | Function | (string | Function)[];
 type ChangelogOptions = {
   args?: string;
   template?: unknown[];
 };
+
 /**
  * Options for release-pls.
  */
@@ -37,19 +40,20 @@ export interface UserConfig {
  */
 export interface ReleaseContext {
   cwd?: string;
-  env: NodeJS.ProcessEnv;
-  name: string;
-  version: string;
+  env?: NodeJS.ProcessEnv;
+  name?: string;
+  version?: string;
 
   git?: {
-    branch: string;
+    branch?: string;
   };
 
   repo?: {
-    owner: string;
-    repository: string;
+    owner?: string;
+    repository?: string;
   };
 }
+
 export interface InlineConfig {
   config: UserConfig;
   ctx: ReleaseContext;
