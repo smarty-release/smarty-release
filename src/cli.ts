@@ -1,42 +1,22 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { release } from "./commands/release.ts";
-import { loadConfig } from "./config/index.ts";
-import { NAME } from "./constants/index.js";
+import { releaseCommand } from "./commands/release.ts";
+import { changelogCommand } from "./commands/changelog.ts";
 import { logger } from "./utils/index.js";
-import { changelog } from "./commands/changelog.ts";
-import pkg from "../package.json" with { type: "json" };
 import { CancelledError } from "./errors.js";
+import pkg from "../package.json" with { type: "json" };
+
 const program = new Command();
 
 program
-  .name("please-release")
-  .version(pkg.version)
+  .name("release-pls")
   .description("A lightweight, generic release CLI.")
-  .option("--dry-run", "只模拟执行，不做实际发布")
-  .option("-c, --config <path>", "指定配置文件路径")
-  .action(async () => {
-    const opts = program.opts();
-    const config = await loadConfig(NAME, opts.config);
+  .version(pkg.version);
 
-    await release(config);
-  });
-
-program
-  .command("changelog [args...]")
-  .description("生成 changelog 并透传 git-cliff 参数")
-  .allowUnknownOption(true)
-  .option("-c, --config <path>", "指定配置文件路径")
-  .action(async (args) => {
-    const opts = program.opts();
-    const config = await loadConfig(NAME, opts.config, {
-      changelog: {
-        args,
-      },
-    });
-    await changelog(config);
-  });
+// 注册命令
+releaseCommand(program);
+changelogCommand(program);
 
 try {
   await program.parseAsync(process.argv);
