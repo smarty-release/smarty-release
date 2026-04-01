@@ -1,15 +1,14 @@
-export default {
+import { defineConfig } from "./src/config.ts";
+
+export default defineConfig({
   increments: ["patch", "minor", "major"],
   tags: ["latest", "next"],
-
   git: {
     requireBranch: false,
     commitMessage: "release: v${version}",
     tagName: "v${version}",
   },
-
   changelog: {
-    disable: false,
     // args: "-vv --latest",
     args: "-o --tag ${version}",
     // args: ["-o", "--tag", "v${version}"],
@@ -47,4 +46,4 @@ export default {
     // ],
     // "after:release": "echo 已推送 v${version} ",
   },
-};
+});
