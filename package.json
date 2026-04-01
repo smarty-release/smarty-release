@@ -27,7 +27,9 @@
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
     "format": "prettier --cache --write .",
-    "release": "node src/cli.ts"
+    "release": "node src/cli.ts",
+    "build": "tsdown",
+    "cnt": "node a.js"
   },
   "dependencies": {
     "@npmcli/package-json": "^7.0.5",

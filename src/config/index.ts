@@ -3,6 +3,8 @@ import { lilconfig } from "lilconfig";
 import { access, constants } from "node:fs/promises";
 import { merge } from "lodash-es";
 
+export * from "./types.ts";
+
 async function loadConfig(configKey, customPath, overrides) {
   let result;
   const explorer = lilconfig(configKey);

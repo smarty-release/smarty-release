@@ -1,0 +1,909 @@
+src/cli.ts内容如下：
+
+#!/usr/bin/env node
+
+import { Command } from "commander";
+import { release } from "./commands/release.ts";
+import { loadConfig } from "./config/index.ts";
+import { NAME } from "./constants/index.js";
+import { logger } from "./utils/index.js";
+import { changelog } from "./commands/changelog.ts";
+import pkg from "../package.json" with { type: "json" };
+import { CancelledError } from "./errors.js";
+const program = new Command();
+
+program
+  .name("please-release")
+  .version(pkg.version)
+  .description("A lightweight, generic release CLI.")
+  .option("--dry-run", "只模拟执行，不做实际发布")
+  .option("-c, --config <path>", "指定配置文件路径")
+  .action(async () => {
+    const opts = program.opts();
+    const config = await loadConfig(NAME, opts.config);
+
+    await release(config);
+  });
+
+program
+  .command("changelog [args...]")
+  .description("生成 changelog 并透传 git-cliff 参数")
+  .allowUnknownOption(true)
+  .option("-c, --config <path>", "指定配置文件路径")
+  .action(async (args) => {
+    const opts = program.opts();
+    const config = await loadConfig(NAME, opts.config, {
+      changelog: {
+        args,
+      },
+    });
+    await changelog(config);
+  });
+
+try {
+  await program.parseAsync(process.argv);
+} catch (err) {
+  if (err) {
+    err instanceof CancelledError
+      ? logger.warn(err.message)
+      : logger.error(err);
+    process.exit(1);
+  } else {
+    process.exit(0);
+  }
+}
+
+
+src/commands/changelog.ts内容如下：
+
+import { merge } from "lodash-es";
+import defaultsConf from "../config/defaults.ts";
+import { temporaryFile } from "tempy";
+import { writeFile, unlink, readFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import { parse, stringify } from "smol-toml";
+import { runGitCliff } from "git-cliff";
+
+// 当前脚本所在目录
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// 生成变更日志
+export async function changelog(config = {}, execaOptions = {}) {
+  let { args, template } = merge({}, defaultsConf, config).changelog;
+  args = filterArgs(args);
+
+  let tmpConfigFile;
+
+  if (shouldUseTemplate(template)) {
+    tmpConfigFile = await resolveTemplateConfig(template);
+    args = [...args, "--config", tmpConfigFile];
+  }
+
+  await runGitCliff(args, execaOptions);
+  tmpConfigFile && (await unlink(tmpConfigFile));
+}
+
+function filterArgs(input) {
+  return input.filter(
+    (arg, i, arr) =>
+      arg !== "--config" &&
+      arg !== "-c" &&
+      !arg.startsWith("--config=") &&
+      arr[i - 1] !== "--config" &&
+      arr[i - 1] !== "-c",
+  );
+}
+
+function shouldUseTemplate(template) {
+  if (!template) return false;
+  if (Array.isArray(template) && template.length === 0) return false;
+  return true;
+}
+
+async function resolveTemplateConfig(template) {
+  const [templateName, userTplOptions = {}] = template;
+
+  const defaultTplPath = path.resolve(
+    __dirname,
+    "..",
+    "templates",
+    `${templateName}.toml`,
+  );
+
+  if (!existsSync(defaultTplPath)) {
+    throw new Error(`Default template file not found: ${defaultTplPath}`);
+  }
+
+  const defaultTplRaw = await readFile(defaultTplPath, "utf-8");
+  const defaultTplConfig = parse(defaultTplRaw);
+
+  const finalConfig = merge({}, defaultTplConfig, userTplOptions);
+
+  const tmpFile = temporaryFile({ extension: "toml" });
+  await writeFile(tmpFile, stringify(finalConfig));
+
+  return tmpFile;
+}
+
+
+src/commands/release.ts内容如下：
+
+import { runHook } from "../hooks.ts";
+import { formatDuration, createTimer } from "../timer.ts";
+import { logger } from "../utils/index.ts";
+import { merge } from "lodash-es";
+import defaultsConf from "../config/defaults.ts";
+import chalk from "chalk";
+
+import {
+  selectVersion,
+  selectTag,
+  bump,
+  gitAdd,
+  gitCommit,
+  gitTag,
+  gitPush,
+  collectContext,
+  summary,
+  genChangelog,
+} from "../steps/index.ts";
+
+export async function release(config = {}) {
+  config = merge({}, defaultsConf, config);
+
+  const ctx = await collectContext(config);
+  const timer = createTimer();
+
+  // 流程开始
+  await runHook(config.hooks?.["before:init"], ctx);
+  // 选择版本
+  await runHook(config.hooks?.["before:selectVersion"], ctx);
+  await selectVersion(config, ctx);
+  await runHook(config.hooks?.["after:selectVersion"], ctx);
+
+  // 选择tag
+  await runHook(config.hooks?.["before:selectTag"], ctx);
+  await selectTag(config, ctx);
+  await runHook(config.hooks?.["after:selectTag"], ctx);
+
+  // 变更日志
+  if (!config.changelog.disable) {
+    await runHook(config.hooks?.["before:changelog"], ctx);
+    await genChangelog(config, ctx);
+    await runHook(config.hooks?.["after:changelog"], ctx);
+  }
+  // bump
+  await runHook(config.hooks?.["before:bump"], ctx);
+  await bump(config, ctx);
+  await runHook(config.hooks?.["after:bump"], ctx);
+
+  // 总结阶段
+  await summary(config, ctx);
+  // git系列
+  await runHook(config.hooks?.["before:git"], ctx);
+
+  // git 具体步骤
+  await runHook(config.hooks?.["before:git.add"], ctx);
+  await gitAdd(config, ctx);
+  await runHook(config.hooks?.["after:git.add"], ctx);
+
+  await runHook(config.hooks?.["before:git.commit"], ctx);
+  await gitCommit(config, ctx);
+  await runHook(config.hooks?.["after:git.commit"], ctx);
+
+  await runHook(config.hooks?.["before:git.tag"], ctx);
+  await gitTag(config, ctx);
+  await runHook(config.hooks?.["after:git.tag"], ctx);
+
+  await runHook(config.hooks?.["before:git.push"], ctx);
+  await gitPush(config, ctx);
+  await runHook(config.hooks?.["after:git.push"], ctx);
+
+  await runHook(config.hooks?.["after:git"], ctx);
+
+  // 流程走完之后
+  await runHook(config.hooks?.["after:release"], ctx);
+
+  const cost = formatDuration(timer.end());
+  logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+}
+
+
+src/config/defaults.ts内容如下：
+
+export default {
+  increments: ["patch", "minor", "major"],
+  tags: ["latest", "next"],
+
+  changelog: {
+    args: "-o --tag ${version}",
+    template: [],
+  },
+
+  git: {
+    requireBranch: false,
+    commitMessage: "release: v${version}",
+    tagName: "v${version}",
+  },
+
+  hooks: {},
+};
+
+
+src/config/index.ts内容如下：
+
+import { resolve } from "node:path";
+import { lilconfig } from "lilconfig";
+import { access, constants } from "node:fs/promises";
+import { merge } from "lodash-es";
+
+async function loadConfig(configKey, customPath, overrides) {
+  let result;
+  const explorer = lilconfig(configKey);
+  if (customPath) {
+    // 传递了config选项
+    const filepath = resolve(process.cwd(), customPath);
+
+    // 检查该文件是否存在
+    const exists = await fileExists(filepath);
+
+    if (!exists) {
+      throw new Error(`No ${configKey} configuration found.`);
+    }
+    result = await explorer.load(filepath);
+  } else {
+    result = await explorer.search();
+  }
+
+  result = result?.config || {};
+  if (!overrides) return result;
+  return merge({}, result, overrides);
+}
+
+async function fileExists(filePath) {
+  try {
+    await access(filePath, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export { loadConfig };
+
+
+src/config/types.ts内容如下：
+
+type Hook = string | Function | (string | Function)[];
+type ChangelogOptions = {
+  args?: string;
+  template?: unknown[];
+};
+/**
+ * Options for release-pls.
+ */
+export interface UserConfig {
+  /**
+   * 控制版本号递增类型（符合语义化版本 SemVer）
+   *
+   * @example
+   *  patch → 修复 bug（1.0.0 → 1.0.1）
+   *  minor → 新功能（1.0.0 → 1.1.0）
+   *  major → 破坏性更新（1.0.0 → 2.0.0）
+   */
+  increments?: string[];
+  /**
+   * 发布时使用的 npm dist-tag
+   */
+  tags?: string[];
+  /** 控制变更日志是否生成 */
+  changelog?: boolean | ChangelogOptions;
+  /** 控制 Git 操作行为 */
+  git?: {
+    requireBranch?: boolean | string;
+    commitMessage?: string;
+    tagName?: string;
+  };
+  /** 生命周期钩子 */
+  hooks?: Record<string, Hook | undefined>;
+}
+
+/**
+ * CLI运行时产生的一些配置
+ */
+export interface ReleaseContext {
+  cwd?: string;
+  env: NodeJS.ProcessEnv;
+  name: string;
+  version: string;
+
+  git?: {
+    branch: string;
+  };
+
+  repo?: {
+    owner: string;
+    repository: string;
+  };
+}
+export interface InlineConfig {
+  config: UserConfig;
+  ctx: ReleaseContext;
+}
+
+
+src/config.ts内容如下：
+
+import type {
+  UserConfig,
+  UserConfigExport,
+  UserConfigFn,
+} from "./config/index.ts";
+/**
+ * Defines the configuration for tsdown.
+ */
+export function defineConfig(options: UserConfig): UserConfig;
+export function defineConfig(options: UserConfig[]): UserConfig[];
+export function defineConfig(options: UserConfigFn): UserConfigFn;
+export function defineConfig(options: UserConfigExport): UserConfigExport;
+export function defineConfig(options: UserConfigExport): UserConfigExport {
+  return options;
+}
+
+export type { UserConfig, UserConfigExport, UserConfigFn };
+
+
+src/constants/index.ts内容如下：
+
+export const NAME = "release-pls";
+
+
+src/errors.ts内容如下：
+
+export class CancelledError extends Error {
+  constructor(message = "Release cancelled by user") {
+    super(message);
+    this.name = "CancelledError";
+    this.code = "USER_CANCEL";
+    this.isCancelled = true;
+  }
+}
+export class NotGitRepoError extends Error {
+  constructor(message = "Current working directory is not a git repository.") {
+    super(message);
+    this.name = "NotGitRepoError";
+    this.code = "NOT_GIT_REPO";
+  }
+}
+
+export class GitDirtyError extends Error {
+  constructor(
+    message = "Working directory is not clean. Please commit your changes."
+  ) {
+    super(message);
+    this.name = "GitDirtyError";
+    this.code = "GIT_DIRTY";
+  }
+}
+
+
+src/hooks.ts内容如下：
+
+import { execa } from "execa";
+import { CancelledError } from "./errors.js";
+import { renderTemplate } from "./utils/index.js";
+import { logger } from "./utils/index.js";
+function createHookContext(ctx) {
+  return {
+    ...ctx,
+
+    logger,
+    cancel(message) {
+      throw new CancelledError(message);
+    },
+  };
+}
+
+export async function runHook(hook, ctx) {
+  if (!hook) return;
+
+  const hookCtx = createHookContext(ctx);
+
+  // string：shell 命令
+  if (typeof hook === "string") {
+    const cmd = renderTemplate(hook, ctx);
+    await execa(cmd, { shell: true, stdio: "inherit" });
+    return;
+  }
+
+  // function
+  if (typeof hook === "function") {
+    await hook(hookCtx);
+    return;
+  }
+
+  // array
+  if (Array.isArray(hook)) {
+    for (const h of hook) {
+      await runHook(h, ctx); // 继续传原始 ctx
+    }
+  }
+}
+
+
+src/index.ts内容如下：
+
+export { defineConfig, mergeConfig } from "./config.ts";
+export * from "./config/types.ts";
+
+
+src/steps/bump.ts内容如下：
+
+import PackageJson from "@npmcli/package-json";
+
+export async function bump(config, ctx) {
+  const pkgJson = await PackageJson.load(ctx.cwd);
+
+  pkgJson.update({
+    version: ctx.version,
+    publishConfig: {
+      tag: ctx.tag,
+    },
+  });
+
+  await pkgJson.save();
+}
+
+
+src/steps/collectContext.ts内容如下：
+
+import { checkGitRepoStatus, matchBranch } from "../utils/index.js";
+import { NotGitRepoError, GitDirtyError } from "../errors.js";
+import { execa } from "execa";
+import hostedGitInfo from "hosted-git-info";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
+export async function collectContext(config) {
+  const ctx = {
+    cwd: process.cwd(),
+    env: process.env,
+  };
+  const { isGitRepo, isClean } = await checkGitRepoStatus();
+
+  if (!isGitRepo) throw new NotGitRepoError();
+  if (!isClean) throw new GitDirtyError();
+
+  await collectGitContext(config, ctx);
+  await collectRepoContext(config, ctx);
+  await collectPackageContext(config, ctx);
+
+  return ctx;
+}
+
+async function collectPackageContext(config, ctx) {
+  const pkgPath = resolve(ctx.cwd, "package.json");
+
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
+  } catch (err) {
+    throw new Error(
+      `Cannot read package.json in current directory: ${pkgPath}\n` +
+        `Please run this command in a Node.js project root.`
+    );
+  }
+
+  if (!pkg.version || typeof pkg.version !== "string") {
+    throw new Error(`package.json does not contain a valid "version" field.`);
+  }
+
+  Object.assign(ctx, {
+    name: pkg.name,
+    version: pkg.version,
+  });
+}
+
+async function collectGitContext(config, ctx) {
+  const { stdout: branch } = await execa("git", [
+    "rev-parse",
+    "--abbrev-ref",
+    "HEAD",
+  ]);
+
+  Object.assign((ctx.git ??= {}), {
+    branch,
+  });
+
+  await assertAllowedBranch(config, ctx);
+}
+
+async function collectRepoContext(config, ctx) {
+  let remoteUrl;
+
+  try {
+    const { stdout } = await execa("git", ["remote", "get-url", "origin"]);
+    remoteUrl = stdout.trim();
+  } catch {
+    return;
+  }
+
+  const info = hostedGitInfo.fromUrl(remoteUrl);
+  if (!info) return;
+
+  Object.assign((ctx.repo ??= {}), {
+    repository: info.project,
+    owner: info.user,
+  });
+}
+
+async function assertAllowedBranch(config, ctx) {
+  const { requireBranch } = config.git;
+
+  if (!requireBranch) return;
+
+  const current = ctx.git.branch;
+
+  if (!matchBranch(requireBranch, current)) {
+    throw new Error(
+      `Release is only allowed on ${String(requireBranch)}, current: ${current}`
+    );
+  }
+}
+
+
+src/steps/genChangelog.ts内容如下：
+
+import { changelog } from "../changelog.js";
+import { renderTemplate } from "../utils/index.js";
+
+export async function genChangelog(config, ctx) {
+  // 格式化args参数
+
+  config.changelog.args = transformArgs(config.changelog.args, ctx);
+
+  await changelog(config, {
+    stdio: "ignore",
+  });
+}
+
+function transformArgs(input, ctx) {
+  if (typeof input !== "string" && !Array.isArray(input)) {
+    throw new TypeError("Expected string or array");
+  }
+  const arr = typeof input === "string" ? input.trim().split(/\s+/) : input;
+
+  return arr.map((v) => renderTemplate(v, ctx));
+}
+
+
+src/steps/git.ts内容如下：
+
+import { run, renderTemplate } from "../utils/index.ts";
+import ora from "ora";
+
+export async function gitAdd(config, ctx) {
+  await run("git", ["add", "."]);
+}
+
+export async function gitCommit(config, ctx) {
+  const message = renderTemplate(config.git?.commitMessage, ctx);
+  await run("git", ["commit", "--no-verify", "-s", "-m", message]);
+}
+
+export async function gitTag(config, ctx) {
+  const tagName = renderTemplate(config.git?.tagName, ctx);
+  await run("git", ["tag", tagName]);
+}
+
+export async function gitPush(config, ctx) {
+  const spinner = ora("Releasing…").start();
+  const tagName = renderTemplate(config.git?.tagName, ctx);
+  await run("git", ["push"]);
+  await run("git", ["push", "origin", `refs/tags/${tagName}`]);
+  spinner.stop();
+}
+
+
+src/steps/index.ts内容如下：
+
+export * from "./collectContext.ts";
+export * from "./selectTag.ts";
+export * from "./selectVersion.ts";
+export * from "./bump.ts";
+export * from "./git.ts";
+export * from "./summary.ts";
+export * from "./genChangelog.ts";
+
+
+src/steps/selectTag.ts内容如下：
+
+import prompts from "prompts";
+import semver from "semver";
+import { CancelledError } from "../errors.ts";
+
+export async function selectTag(config, ctx) {
+  const isPrerelease = !!semver.prerelease(ctx.version);
+
+  const choices = config.tags
+    .map((tag) => {
+      const disabled = isPrerelease && tag === "latest";
+
+      return {
+        tag,
+        disabled,
+        title: tag,
+      };
+    })
+    // 可用的在前，禁用的在后
+    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
+    .map(({ tag, disabled, title }) => ({
+      title,
+      value: tag,
+      disabled,
+    }));
+
+  const { tag } = await prompts({
+    type: "select",
+    name: "tag",
+    message: "What do you want to tag",
+    choices,
+  });
+
+  if (!tag) {
+    throw new CancelledError();
+  }
+
+  ctx.tag = tag;
+}
+
+
+src/steps/selectVersion.ts内容如下：
+
+import prompts from "prompts";
+import { CancelledError } from "../errors.ts";
+import semver from "semver";
+
+const { inc, valid, prerelease } = semver;
+
+export async function selectVersion(config, ctx) {
+  let targetVersion;
+  const currentVersion = ctx.version;
+  const isPrerelease = prerelease(currentVersion);
+
+  // 构建版本选项
+  const choices = config.increments.map((type) => ({
+    title: `${type} (${inc(currentVersion, type)})`,
+    value: inc(currentVersion, type),
+  }));
+
+  // 如果当前是预发布版本，插入 prerelease 选项
+  if (isPrerelease) {
+    choices.unshift({
+      title: `prerelease (${inc(currentVersion, "prerelease")})`,
+      value: inc(currentVersion, "prerelease"),
+    });
+  }
+
+  // custom 始终放最后
+  choices.push({
+    title: "custom",
+    value: "custom",
+  });
+
+  const { release } = await prompts({
+    type: "select",
+    name: "release",
+    message: "What do you want to release",
+    choices,
+  });
+
+  if (!release) {
+    throw new CancelledError();
+  }
+
+  // 自定义版本号
+  if (release === "custom") {
+    const { version } = await prompts({
+      type: "text",
+      name: "version",
+      message: "Input custom version",
+      initial: currentVersion,
+      validate(value) {
+        const v = value.trim();
+        if (!valid(v)) return "Invalid semver version";
+        if (!semver.gt(value, currentVersion)) {
+          return "Version must be greater than current version";
+        }
+        return true;
+      },
+      onRender() {
+        if (this.firstRender) {
+          this.value = currentVersion;
+          this.cursor = currentVersion.length;
+        }
+      },
+    });
+
+    if (!version) {
+      throw new CancelledError();
+    }
+
+    targetVersion = version;
+  } else {
+    targetVersion = release;
+  }
+
+  ctx.version = targetVersion;
+}
+
+
+src/steps/summary.ts内容如下：
+
+import prompts from "prompts";
+import { CancelledError } from "../errors.ts";
+import {
+  workerDirRestore,
+  gitChangeset,
+  blank,
+  renderTemplate,
+} from "../utils/index.js";
+import { logger } from "../utils/index.js";
+import chalk from "chalk";
+
+export async function summary(config, ctx) {
+  const tagName = renderTemplate(config.git?.tagName, ctx);
+
+  const entries = [
+    ["Version", ctx.version],
+    ["Npm Dist Tag", ctx.tag],
+    ["Owner", ctx.repo.owner],
+    ["Repository", ctx.repo.repository],
+    ["Branch", ctx.git.branch],
+    ["Git Tag", tagName],
+  ];
+
+  blank();
+  logger.log(chalk.cyan("Summary:"));
+  logger.log(chalk.gray("----------------------------------"));
+  for (const [key, val] of entries) {
+    logger.log(chalk.green(key.padEnd(20)), chalk.yellow(val));
+  }
+  blank();
+  logger.log(chalk.cyan("Changeset:"));
+  await gitChangeset();
+  blank();
+
+  const { ok } = await prompts(
+    {
+      type: "confirm",
+      name: "ok",
+      message: "Proceed with release",
+      initial: false,
+    },
+    {
+      // 当用户按 Ctrl+C 或 ESC 时触发
+      onCancel() {
+        throw new CancelledError();
+      },
+    },
+  );
+
+  if (ok === false) {
+    await workerDirRestore(); // 恢复所有的变更
+    throw new CancelledError();
+  }
+}
+
+
+src/timer.ts内容如下：
+
+export function createTimer() {
+  const start = process.hrtime.bigint();
+
+  return {
+    end() {
+      const end = process.hrtime.bigint();
+      const diffNs = end - start;
+      return Number(diffNs) / 1e3 / 1e3; // ms
+    },
+  };
+}
+
+export function formatDuration(ms) {
+  if (ms < 1000) return `${ms.toFixed(0)}ms`;
+
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(2)}s`;
+
+  const m = Math.floor(s / 60);
+  const rest = (s % 60).toFixed(1);
+  return `${m}m ${rest}s`;
+}
+
+
+src/utils/index.ts内容如下：
+
+import { execa } from "execa";
+import { createConsola } from "consola";
+import { NAME } from "../constants/index.js";
+
+export const run = (bin, args, opts = {}) =>
+  execa(bin, args, { stdio: "pipe", ...opts });
+
+export const logger = createConsola({
+  defaults: {
+    tag: NAME,
+  },
+});
+
+export async function gitChangeset(cwd = process.cwd()) {
+  await run("git", ["status", "--porcelain"], { stdio: "inherit", cwd });
+}
+
+/**
+ * 判断当前目录是否是一个干净的 git 仓库
+ */
+export async function checkGitRepoStatus(cwd = process.cwd()) {
+  // 1. 是否是 git 仓库
+  try {
+    await execa("git", ["rev-parse", "--is-inside-work-tree"], { cwd });
+  } catch {
+    return {
+      isGitRepo: false,
+      isClean: false,
+    };
+  }
+
+  // 2. 是否干净
+  const { stdout } = await execa("git", ["status", "--porcelain"], { cwd });
+
+  return {
+    isGitRepo: true,
+    isClean: stdout.trim().length === 0,
+  };
+}
+
+export async function workerDirRestore(cwd = process.cwd()) {
+  await run("git", ["restore", "."], { cwd });
+  await run("git", ["clean", "-f"], { cwd });
+}
+
+export function renderTemplate(template, ctx) {
+  if (!template || typeof template !== "string") return template;
+
+  return template.replace(/\$\{([^}]+)\}/g, (_, expr) => {
+    const value = expr.split(".").reduce((acc, key) => acc?.[key], ctx);
+
+    if (value == null) {
+      throw new Error(`Template variable "${expr}" is not defined`);
+    }
+
+    return String(value);
+  });
+}
+
+export function blank(lines = 1) {
+  process.stdout.write("\n".repeat(lines));
+}
+
+export function matchBranch(requireBranch, current) {
+  if (!requireBranch) return true;
+
+  if (typeof requireBranch === "string") {
+    return current === requireBranch;
+  }
+
+  if (Array.isArray(requireBranch)) {
+    return requireBranch.includes(current);
+  }
+
+  if (requireBranch instanceof RegExp) {
+    return requireBranch.test(current);
+  }
+
+  return false;
+}
+

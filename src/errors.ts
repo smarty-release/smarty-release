@@ -16,7 +16,7 @@ export class NotGitRepoError extends Error {
 
 export class GitDirtyError extends Error {
   constructor(
-    message = "Working directory is not clean. Please commit your changes."
+    message = "Working directory is not clean. Please commit your changes.",
   ) {
     super(message);
     this.name = "GitDirtyError";

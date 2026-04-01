@@ -31,7 +31,7 @@ async function collectPackageContext(config, ctx) {
   } catch (err) {
     throw new Error(
       `Cannot read package.json in current directory: ${pkgPath}\n` +
-        `Please run this command in a Node.js project root.`
+        `Please run this command in a Node.js project root.`,
     );
   }
 
@@ -87,7 +87,7 @@ async function assertAllowedBranch(config, ctx) {
 
   if (!matchBranch(requireBranch, current)) {
     throw new Error(
-      `Release is only allowed on ${String(requireBranch)}, current: ${current}`
+      `Release is only allowed on ${String(requireBranch)}, current: ${current}`,
     );
   }
 }

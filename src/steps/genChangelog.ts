@@ -1,4 +1,4 @@
-import { changelog } from "../changelog.js";
+import { changelog } from "../commands/changelog.ts";
 import { renderTemplate } from "../utils/index.js";
 
 export async function genChangelog(config, ctx) {
