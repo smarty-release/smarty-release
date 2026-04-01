@@ -1,12 +1,16 @@
 import { resolve } from "node:path";
-import { lilconfig } from "lilconfig";
+import { lilconfig, LilconfigResult } from "lilconfig";
 import { access, constants } from "node:fs/promises";
 import { merge } from "lodash-es";
 
 export * from "./types.ts";
 
-async function loadConfig(configKey, customPath, overrides) {
-  let result;
+async function loadConfig<T extends Record<string, any> = Record<string, any>>(
+  configKey: string,
+  customPath?: string,
+  overrides?: Partial<T>,
+): Promise<T> {
+  let result: LilconfigResult | null;
   const explorer = lilconfig(configKey);
   if (customPath) {
     // 传递了config选项
@@ -23,12 +27,14 @@ async function loadConfig(configKey, customPath, overrides) {
     result = await explorer.search();
   }
 
-  result = result?.config || {};
-  if (!overrides) return result;
-  return merge({}, result, overrides);
+  const config = (result?.config ?? {}) as T;
+
+  if (!overrides) return config;
+
+  return merge({}, config, overrides);
 }
 
-async function fileExists(filePath) {
+async function fileExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath, constants.F_OK);
     return true;
