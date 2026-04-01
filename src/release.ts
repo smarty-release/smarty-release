@@ -4,6 +4,8 @@ import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
+import type { PartialDeep, RequiredDeep, ReadonlyDeep } from "type-fest";
+import { UserConfig } from "./config.ts";
 
 import {
   selectVersion,
@@ -18,7 +20,7 @@ import {
   genChangelog,
 } from "./steps/index.ts";
 
-export async function release(config = {}) {
+export async function release(config: UserConfig = {}) {
   config = merge({}, defaultsConf, config);
 
   const ctx = await collectContext(config);
@@ -37,7 +39,7 @@ export async function release(config = {}) {
   await runHook(config.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (!config.changelog.disable) {
+  if (config.changelog !== false) {
     await runHook(config.hooks?.["before:changelog"], ctx);
     await genChangelog(config, ctx);
     await runHook(config.hooks?.["after:changelog"], ctx);

@@ -1,63 +1,7 @@
-src/cli.ts内容如下：
-
-#!/usr/bin/env node
-
-import { Command } from "commander";
-import { release } from "./commands/release.ts";
-import { loadConfig } from "./config/index.ts";
-import { NAME } from "./constants/index.js";
-import { logger } from "./utils/index.js";
-import { changelog } from "./commands/changelog.ts";
-import pkg from "../package.json" with { type: "json" };
-import { CancelledError } from "./errors.js";
-const program = new Command();
-
-program
-  .name("please-release")
-  .version(pkg.version)
-  .description("A lightweight, generic release CLI.")
-  .option("--dry-run", "只模拟执行，不做实际发布")
-  .option("-c, --config <path>", "指定配置文件路径")
-  .action(async () => {
-    const opts = program.opts();
-    const config = await loadConfig(NAME, opts.config);
-
-    await release(config);
-  });
-
-program
-  .command("changelog [args...]")
-  .description("生成 changelog 并透传 git-cliff 参数")
-  .allowUnknownOption(true)
-  .option("-c, --config <path>", "指定配置文件路径")
-  .action(async (args) => {
-    const opts = program.opts();
-    const config = await loadConfig(NAME, opts.config, {
-      changelog: {
-        args,
-      },
-    });
-    await changelog(config);
-  });
-
-try {
-  await program.parseAsync(process.argv);
-} catch (err) {
-  if (err) {
-    err instanceof CancelledError
-      ? logger.warn(err.message)
-      : logger.error(err);
-    process.exit(1);
-  } else {
-    process.exit(0);
-  }
-}
-
-
-src/commands/changelog.ts内容如下：
+src/changelog.ts内容如下：
 
 import { merge } from "lodash-es";
-import defaultsConf from "../config/defaults.ts";
+import defaultsConf from "./config/defaults.ts";
 import { temporaryFile } from "tempy";
 import { writeFile, unlink, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -128,86 +72,84 @@ async function resolveTemplateConfig(template) {
 }
 
 
+src/cli.ts内容如下：
+
+#!/usr/bin/env node
+
+import { Command } from "commander";
+import { releaseCommand } from "./commands/release.ts";
+import { changelogCommand } from "./commands/changelog.ts";
+import { logger } from "./utils/index.js";
+import { CancelledError } from "./errors.js";
+import pkg from "../package.json" with { type: "json" };
+
+const program = new Command();
+
+program
+  .name("release-pls")
+  .description("A lightweight, generic release CLI.")
+  .version(pkg.version);
+
+// 注册命令
+releaseCommand(program);
+changelogCommand(program);
+
+try {
+  await program.parseAsync(process.argv);
+} catch (err) {
+  if (err) {
+    err instanceof CancelledError
+      ? logger.warn(err.message)
+      : logger.error(err);
+    process.exit(1);
+  } else {
+    process.exit(0);
+  }
+}
+
+
+src/commands/changelog.ts内容如下：
+
+import { Command } from "commander";
+import { loadConfig } from "../config/index.ts";
+import { NAME } from "../constants/index.ts";
+import { changelog } from "../changelog.ts";
+
+export function changelogCommand(program: Command) {
+  program
+    .command("changelog [args...]")
+    .description("生成 changelog 并透传 git-cliff 参数")
+    .allowUnknownOption(true)
+    .option("-c, --config <path>", "指定配置文件路径")
+    .action(async (args) => {
+      const opts = program.opts();
+      const config = await loadConfig(NAME, opts.config, {
+        changelog: {
+          args,
+        },
+      });
+      await changelog(config);
+    });
+}
+
+
 src/commands/release.ts内容如下：
 
-import { runHook } from "../hooks.ts";
-import { formatDuration, createTimer } from "../timer.ts";
-import { logger } from "../utils/index.ts";
-import { merge } from "lodash-es";
-import defaultsConf from "../config/defaults.ts";
-import chalk from "chalk";
+import { Command } from "commander";
+import { loadConfig } from "../config/index.ts";
+import { NAME } from "../constants/index.ts";
+import { release } from "../release.ts";
 
-import {
-  selectVersion,
-  selectTag,
-  bump,
-  gitAdd,
-  gitCommit,
-  gitTag,
-  gitPush,
-  collectContext,
-  summary,
-  genChangelog,
-} from "../steps/index.ts";
+export function releaseCommand(program: Command) {
+  program
+    .option("--dry-run", "只模拟执行，不做实际发布")
+    .option("-c, --config <path>", "指定配置文件路径")
+    .action(async () => {
+      const opts = program.opts();
+      const config = await loadConfig(NAME, opts.config);
 
-export async function release(config = {}) {
-  config = merge({}, defaultsConf, config);
-
-  const ctx = await collectContext(config);
-  const timer = createTimer();
-
-  // 流程开始
-  await runHook(config.hooks?.["before:init"], ctx);
-  // 选择版本
-  await runHook(config.hooks?.["before:selectVersion"], ctx);
-  await selectVersion(config, ctx);
-  await runHook(config.hooks?.["after:selectVersion"], ctx);
-
-  // 选择tag
-  await runHook(config.hooks?.["before:selectTag"], ctx);
-  await selectTag(config, ctx);
-  await runHook(config.hooks?.["after:selectTag"], ctx);
-
-  // 变更日志
-  if (!config.changelog.disable) {
-    await runHook(config.hooks?.["before:changelog"], ctx);
-    await genChangelog(config, ctx);
-    await runHook(config.hooks?.["after:changelog"], ctx);
-  }
-  // bump
-  await runHook(config.hooks?.["before:bump"], ctx);
-  await bump(config, ctx);
-  await runHook(config.hooks?.["after:bump"], ctx);
-
-  // 总结阶段
-  await summary(config, ctx);
-  // git系列
-  await runHook(config.hooks?.["before:git"], ctx);
-
-  // git 具体步骤
-  await runHook(config.hooks?.["before:git.add"], ctx);
-  await gitAdd(config, ctx);
-  await runHook(config.hooks?.["after:git.add"], ctx);
-
-  await runHook(config.hooks?.["before:git.commit"], ctx);
-  await gitCommit(config, ctx);
-  await runHook(config.hooks?.["after:git.commit"], ctx);
-
-  await runHook(config.hooks?.["before:git.tag"], ctx);
-  await gitTag(config, ctx);
-  await runHook(config.hooks?.["after:git.tag"], ctx);
-
-  await runHook(config.hooks?.["before:git.push"], ctx);
-  await gitPush(config, ctx);
-  await runHook(config.hooks?.["after:git.push"], ctx);
-
-  await runHook(config.hooks?.["after:git"], ctx);
-
-  // 流程走完之后
-  await runHook(config.hooks?.["after:release"], ctx);
-
-  const cost = formatDuration(timer.end());
-  logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+      await release(config);
+    });
 }
 
 
@@ -235,12 +177,18 @@ export default {
 src/config/index.ts内容如下：
 
 import { resolve } from "node:path";
-import { lilconfig } from "lilconfig";
+import { lilconfig, LilconfigResult } from "lilconfig";
 import { access, constants } from "node:fs/promises";
 import { merge } from "lodash-es";
 
-async function loadConfig(configKey, customPath, overrides) {
-  let result;
+export * from "./types.ts";
+
+async function loadConfig<T extends Record<string, any> = Record<string, any>>(
+  configKey: string,
+  customPath?: string,
+  overrides?: Partial<T>,
+): Promise<T> {
+  let result: LilconfigResult | null;
   const explorer = lilconfig(configKey);
   if (customPath) {
     // 传递了config选项
@@ -257,12 +205,14 @@ async function loadConfig(configKey, customPath, overrides) {
     result = await explorer.search();
   }
 
-  result = result?.config || {};
-  if (!overrides) return result;
-  return merge({}, result, overrides);
+  const config = (result?.config ?? {}) as T;
+
+  if (!overrides) return config;
+
+  return merge({}, config, overrides);
 }
 
-async function fileExists(filePath) {
+async function fileExists(filePath: string): Promise<boolean> {
   try {
     await access(filePath, constants.F_OK);
     return true;
@@ -336,23 +286,13 @@ export interface InlineConfig {
 
 src/config.ts内容如下：
 
-import type {
-  UserConfig,
-  UserConfigExport,
-  UserConfigFn,
-} from "./config/index.ts";
-/**
- * Defines the configuration for tsdown.
- */
-export function defineConfig(options: UserConfig): UserConfig;
-export function defineConfig(options: UserConfig[]): UserConfig[];
-export function defineConfig(options: UserConfigFn): UserConfigFn;
-export function defineConfig(options: UserConfigExport): UserConfigExport;
-export function defineConfig(options: UserConfigExport): UserConfigExport {
+import type { UserConfig } from "./config/index.ts";
+
+export function defineConfig(options: UserConfig): UserConfig {
   return options;
 }
 
-export type { UserConfig, UserConfigExport, UserConfigFn };
+export type { UserConfig };
 
 
 src/constants/index.ts内容如下：
@@ -380,7 +320,7 @@ export class NotGitRepoError extends Error {
 
 export class GitDirtyError extends Error {
   constructor(
-    message = "Working directory is not clean. Please commit your changes."
+    message = "Working directory is not clean. Please commit your changes.",
   ) {
     super(message);
     this.name = "GitDirtyError";
@@ -435,8 +375,91 @@ export async function runHook(hook, ctx) {
 
 src/index.ts内容如下：
 
-export { defineConfig, mergeConfig } from "./config.ts";
+export { defineConfig } from "./config.ts";
 export * from "./config/types.ts";
+
+
+src/release.ts内容如下：
+
+import { runHook } from "./hooks.ts";
+import { formatDuration, createTimer } from "./utils/timer.ts";
+import { logger } from "./utils/index.ts";
+import { merge } from "lodash-es";
+import defaultsConf from "./config/defaults.ts";
+import chalk from "chalk";
+
+import {
+  selectVersion,
+  selectTag,
+  bump,
+  gitAdd,
+  gitCommit,
+  gitTag,
+  gitPush,
+  collectContext,
+  summary,
+  genChangelog,
+} from "./steps/index.ts";
+
+export async function release(config = {}) {
+  config = merge({}, defaultsConf, config);
+
+  const ctx = await collectContext(config);
+  const timer = createTimer();
+
+  // 流程开始
+  await runHook(config.hooks?.["before:init"], ctx);
+  // 选择版本
+  await runHook(config.hooks?.["before:selectVersion"], ctx);
+  await selectVersion(config, ctx);
+  await runHook(config.hooks?.["after:selectVersion"], ctx);
+
+  // 选择tag
+  await runHook(config.hooks?.["before:selectTag"], ctx);
+  await selectTag(config, ctx);
+  await runHook(config.hooks?.["after:selectTag"], ctx);
+
+  // 变更日志
+  if (!config.changelog.disable) {
+    await runHook(config.hooks?.["before:changelog"], ctx);
+    await genChangelog(config, ctx);
+    await runHook(config.hooks?.["after:changelog"], ctx);
+  }
+  // bump
+  await runHook(config.hooks?.["before:bump"], ctx);
+  await bump(config, ctx);
+  await runHook(config.hooks?.["after:bump"], ctx);
+
+  // 总结阶段
+  await summary(config, ctx);
+  // git系列
+  await runHook(config.hooks?.["before:git"], ctx);
+
+  // git 具体步骤
+  await runHook(config.hooks?.["before:git.add"], ctx);
+  await gitAdd(config, ctx);
+  await runHook(config.hooks?.["after:git.add"], ctx);
+
+  await runHook(config.hooks?.["before:git.commit"], ctx);
+  await gitCommit(config, ctx);
+  await runHook(config.hooks?.["after:git.commit"], ctx);
+
+  await runHook(config.hooks?.["before:git.tag"], ctx);
+  await gitTag(config, ctx);
+  await runHook(config.hooks?.["after:git.tag"], ctx);
+
+  await runHook(config.hooks?.["before:git.push"], ctx);
+  await gitPush(config, ctx);
+  await runHook(config.hooks?.["after:git.push"], ctx);
+
+  await runHook(config.hooks?.["after:git"], ctx);
+
+  // 流程走完之后
+  await runHook(config.hooks?.["after:release"], ctx);
+
+  const cost = formatDuration(timer.end());
+  logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+}
 
 
 src/steps/bump.ts内容如下：
@@ -492,7 +515,7 @@ async function collectPackageContext(config, ctx) {
   } catch (err) {
     throw new Error(
       `Cannot read package.json in current directory: ${pkgPath}\n` +
-        `Please run this command in a Node.js project root.`
+        `Please run this command in a Node.js project root.`,
     );
   }
 
@@ -548,7 +571,7 @@ async function assertAllowedBranch(config, ctx) {
 
   if (!matchBranch(requireBranch, current)) {
     throw new Error(
-      `Release is only allowed on ${String(requireBranch)}, current: ${current}`
+      `Release is only allowed on ${String(requireBranch)}, current: ${current}`,
     );
   }
 }
@@ -556,7 +579,7 @@ async function assertAllowedBranch(config, ctx) {
 
 src/steps/genChangelog.ts内容如下：
 
-import { changelog } from "../changelog.js";
+import { changelog } from "../changelog.ts";
 import { renderTemplate } from "../utils/index.js";
 
 export async function genChangelog(config, ctx) {
@@ -798,32 +821,6 @@ export async function summary(config, ctx) {
 }
 
 
-src/timer.ts内容如下：
-
-export function createTimer() {
-  const start = process.hrtime.bigint();
-
-  return {
-    end() {
-      const end = process.hrtime.bigint();
-      const diffNs = end - start;
-      return Number(diffNs) / 1e3 / 1e3; // ms
-    },
-  };
-}
-
-export function formatDuration(ms) {
-  if (ms < 1000) return `${ms.toFixed(0)}ms`;
-
-  const s = ms / 1000;
-  if (s < 60) return `${s.toFixed(2)}s`;
-
-  const m = Math.floor(s / 60);
-  const rest = (s % 60).toFixed(1);
-  return `${m}m ${rest}s`;
-}
-
-
 src/utils/index.ts内容如下：
 
 import { execa } from "execa";
@@ -905,5 +902,31 @@ export function matchBranch(requireBranch, current) {
   }
 
   return false;
+}
+
+
+src/utils/timer.ts内容如下：
+
+export function createTimer() {
+  const start = process.hrtime.bigint();
+
+  return {
+    end() {
+      const end = process.hrtime.bigint();
+      const diffNs = end - start;
+      return Number(diffNs) / 1e3 / 1e3; // ms
+    },
+  };
+}
+
+export function formatDuration(ms) {
+  if (ms < 1000) return `${ms.toFixed(0)}ms`;
+
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(2)}s`;
+
+  const m = Math.floor(s / 60);
+  const rest = (s % 60).toFixed(1);
+  return `${m}m ${rest}s`;
 }
 
