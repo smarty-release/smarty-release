@@ -3,7 +3,6 @@ export default {
   tags: ["latest", "next"],
 
   changelog: {
-    disable: false,
     args: "-o --tag ${version}",
     template: [],
   },

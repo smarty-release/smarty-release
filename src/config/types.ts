@@ -1,5 +1,8 @@
 type Hook = string | Function | (string | Function)[];
-
+type ChangelogOptions = {
+  args?: string;
+  template?: unknown[];
+};
 /**
  * Options for release-pls.
  */
@@ -18,11 +21,7 @@ export interface UserConfig {
    */
   tags?: string[];
   /** 控制变更日志是否生成 */
-  changelog?: {
-    disable?: boolean;
-    args?: string;
-    template?: unknown[];
-  };
+  changelog?: boolean | ChangelogOptions;
   /** 控制 Git 操作行为 */
   git?: {
     requireBranch?: boolean | string;
@@ -33,7 +32,25 @@ export interface UserConfig {
   hooks?: Record<string, Hook | undefined>;
 }
 
-export interface InlineConfig extends UserConfig {
+/**
+ * CLI运行时产生的一些配置
+ */
+export interface ReleaseContext {
   cwd?: string;
-  env: string;
+  env: NodeJS.ProcessEnv;
+  name: string;
+  version: string;
+
+  git?: {
+    branch: string;
+  };
+
+  repo?: {
+    owner: string;
+    repository: string;
+  };
+}
+export interface InlineConfig {
+  config: UserConfig;
+  ctx: ReleaseContext;
 }
