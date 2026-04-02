@@ -5,6 +5,7 @@ import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { UserConfig, ReleaseContext } from "../config/types.ts";
+import { isUndefined } from "lodash-es";
 
 export async function collectContext(
   config: UserConfig,
@@ -88,6 +89,9 @@ async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
   if (!requireBranch) return;
 
   const currentBranch = ctx.git!.branch;
+  if (isUndefined(currentBranch)) {
+    return;
+  }
 
   if (!matchBranch(requireBranch, currentBranch)) {
     throw new Error(

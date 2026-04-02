@@ -1,12 +1,13 @@
-import { execa, type Options } from "execa";
+import { execa, type Options, ResultPromise } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
+import { ReleaseContext } from "../config/types.ts";
 
 export const run = (
   bin: string,
   args: readonly string[] = [],
   opts: Options = {},
-): ReturnType<typeof execa> => execa(bin, args, { stdio: "pipe", ...opts });
+): ResultPromise => execa(bin, args, { stdio: "pipe", ...opts });
 
 export const logger = createConsola({
   defaults: {
@@ -46,11 +47,11 @@ export async function workerDirRestore(cwd = process.cwd()) {
   await run("git", ["clean", "-f"], { cwd });
 }
 
-export function renderTemplate(template, ctx) {
+export function renderTemplate(template: string, ctx: ReleaseContext): string {
   if (!template || typeof template !== "string") return template;
 
-  return template.replace(/\$\{([^}]+)\}/g, (_, expr) => {
-    const value = expr.split(".").reduce((acc, key) => acc?.[key], ctx);
+  return template.replace(/\$\{([^}]+)\}/g, (_, expr: string) => {
+    const value = expr.split(".").reduce<any>((acc, key) => acc?.[key], ctx);
 
     if (value == null) {
       throw new Error(`Template variable "${expr}" is not defined`);
@@ -60,11 +61,14 @@ export function renderTemplate(template, ctx) {
   });
 }
 
-export function blank(lines = 1) {
+export function blank(lines: number = 1): void {
   process.stdout.write("\n".repeat(lines));
 }
 
-export function matchBranch(requireBranch, current) {
+export function matchBranch(
+  requireBranch: string | string[] | RegExp | boolean,
+  current: string,
+): boolean {
   if (!requireBranch) return true;
 
   if (typeof requireBranch === "string") {
