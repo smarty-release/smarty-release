@@ -226,6 +226,8 @@ export { loadConfig };
 
 src/config/types.ts内容如下：
 
+import type { RequiredDeep } from "type-fest";
+import type { ReleaseType } from "semver";
 type Hook = string | Function | (string | Function)[];
 type ChangelogOptions = {
   args?: string | string[];
@@ -244,7 +246,7 @@ export interface UserConfig {
    *  minor → 新功能（1.0.0 → 1.1.0）
    *  major → 破坏性更新（1.0.0 → 2.0.0）
    */
-  increments?: string[];
+  increments?: ReleaseType[];
   /**
    * 发布时使用的 npm dist-tag
    */
@@ -260,7 +262,7 @@ export interface UserConfig {
   /** 生命周期钩子 */
   hooks?: Record<string, Hook | undefined>;
 }
-
+export type FullUserConfig = RequiredDeep<UserConfig>;
 /**
  * CLI运行时产生的一些配置
  */
@@ -419,7 +421,7 @@ export async function release(config: UserConfig = {}) {
   await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (resolvedConfig.changelog !== false) {
+  if (resolvedConfig.changelog) {
     await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
     await genChangelog(resolvedConfig, ctx);
     await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
@@ -511,7 +513,7 @@ export async function collectContext(
   return ctx;
 }
 
-async function collectPackageContext(config: UserConfig, ctx: ReleaseContext) {
+async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
   const pkgPath = resolve(ctx.cwd!, "package.json");
 
   let pkg;
@@ -590,8 +592,18 @@ src/steps/genChangelog.ts内容如下：
 import { changelog } from "../changelog.ts";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
+import type { RequiredDeep } from "type-fest";
 
-export async function genChangelog(config: UserConfig, ctx: ReleaseContext) {
+type EnabledChangelogConfig = RequiredDeep<
+  Omit<UserConfig, "changelog"> & {
+    changelog: Exclude<UserConfig["changelog"], false | undefined>;
+  }
+>;
+
+export async function genChangelog(
+  config: EnabledChangelogConfig,
+  ctx: ReleaseContext,
+) {
   // 格式化args参数
   config.changelog.args = transformArgs(config.changelog.args, ctx);
 
@@ -612,26 +624,27 @@ function transformArgs(input: string | string[], ctx: ReleaseContext) {
 
 src/steps/git.ts内容如下：
 
+import { FullUserConfig, ReleaseContext } from "../config/types.ts";
 import { run, renderTemplate } from "../utils/index.ts";
 import ora from "ora";
 
-export async function gitAdd(config, ctx) {
+export async function gitAdd(config: FullUserConfig, ctx: ReleaseContext) {
   await run("git", ["add", "."]);
 }
 
-export async function gitCommit(config, ctx) {
-  const message = renderTemplate(config.git?.commitMessage, ctx);
+export async function gitCommit(config: FullUserConfig, ctx: ReleaseContext) {
+  const message = renderTemplate(config.git.commitMessage, ctx);
   await run("git", ["commit", "--no-verify", "-s", "-m", message]);
 }
 
-export async function gitTag(config, ctx) {
-  const tagName = renderTemplate(config.git?.tagName, ctx);
+export async function gitTag(config: FullUserConfig, ctx: ReleaseContext) {
+  const tagName = renderTemplate(config.git.tagName, ctx);
   await run("git", ["tag", tagName]);
 }
 
-export async function gitPush(config, ctx) {
+export async function gitPush(config: FullUserConfig, ctx: ReleaseContext) {
   const spinner = ora("Releasing…").start();
-  const tagName = renderTemplate(config.git?.tagName, ctx);
+  const tagName = renderTemplate(config.git.tagName, ctx);
   await run("git", ["push"]);
   await run("git", ["push", "origin", `refs/tags/${tagName}`]);
   spinner.stop();
@@ -697,12 +710,16 @@ src/steps/selectVersion.ts内容如下：
 import prompts from "prompts";
 import { CancelledError } from "../errors.ts";
 import semver from "semver";
+import { FullUserConfig, ReleaseContext } from "../config/types.ts";
 
 const { inc, valid, prerelease } = semver;
 
-export async function selectVersion(config, ctx) {
+export async function selectVersion(
+  config: FullUserConfig,
+  ctx: ReleaseContext,
+) {
   let targetVersion;
-  const currentVersion = ctx.version;
+  const currentVersion = ctx.version!;
   const isPrerelease = prerelease(currentVersion);
 
   // 构建版本选项
@@ -775,6 +792,8 @@ export async function selectVersion(config, ctx) {
 src/steps/summary.ts内容如下：
 
 import prompts from "prompts";
+import { FullUserConfig, ReleaseContext } from "../config/types.ts";
+
 import { CancelledError } from "../errors.ts";
 import {
   workerDirRestore,
@@ -785,15 +804,15 @@ import {
 import { logger } from "../utils/index.js";
 import chalk from "chalk";
 
-export async function summary(config, ctx) {
-  const tagName = renderTemplate(config.git?.tagName, ctx);
+export async function summary(config: FullUserConfig, ctx: ReleaseContext) {
+  const tagName = renderTemplate(config.git.tagName, ctx);
 
-  const entries = [
-    ["Version", ctx.version],
-    ["Npm Dist Tag", ctx.tag],
-    ["Owner", ctx.repo.owner],
-    ["Repository", ctx.repo.repository],
-    ["Branch", ctx.git.branch],
+  const entries: [string, string][] = [
+    ["Version", ctx.version!],
+    ["Npm Dist Tag", ctx.tag!],
+    ["Owner", ctx!.repo!.owner!],
+    ["Repository", ctx!.repo!.repository!],
+    ["Branch", ctx!.git!.branch!],
     ["Git Tag", tagName],
   ];
 
@@ -935,7 +954,7 @@ export function createTimer() {
   };
 }
 
-export function formatDuration(ms) {
+export function formatDuration(ms: number) {
   if (ms < 1000) return `${ms.toFixed(0)}ms`;
 
   const s = ms / 1000;

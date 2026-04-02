@@ -27,7 +27,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
     "format": "prettier --cache --write .",
-    "release": "node src/cli.ts",
+    "release": "node dist/cli.mjs",
     "build": "tsdown",
     "cnt": "node a.js"
   },
