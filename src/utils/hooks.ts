@@ -1,19 +1,21 @@
 import { execa } from "execa";
-import { CancelledError } from "./errors.js";
-import { renderTemplate } from "./utils/index.js";
-import { logger } from "./utils/index.js";
-function createHookContext(ctx) {
+import { CancelledError } from "../errors.ts";
+import { renderTemplate } from "../utils/index.ts";
+import { logger } from "../utils/index.ts";
+import { ReleaseContext } from "../config.ts";
+import { Hook } from "../config/types.ts";
+function createHookContext(ctx: ReleaseContext) {
   return {
     ...ctx,
 
     logger,
-    cancel(message) {
+    cancel(message: string) {
       throw new CancelledError(message);
     },
   };
 }
 
-export async function runHook(hook, ctx) {
+export async function runHook(hook: Hook, ctx: ReleaseContext) {
   if (!hook) return;
 
   const hookCtx = createHookContext(ctx);

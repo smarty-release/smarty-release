@@ -1,10 +1,10 @@
 import type { RequiredDeep } from "type-fest";
 import type { ReleaseType } from "semver";
-type Hook = string | Function | (string | Function)[];
 type ChangelogOptions = {
   args?: string | string[];
   template?: unknown[];
 };
+export type Hook = string | Function | (string | Function)[] | undefined;
 
 /**
  * Options for release-pls.
@@ -32,7 +32,7 @@ export interface UserConfig {
     tagName?: string;
   };
   /** 生命周期钩子 */
-  hooks?: Record<string, Hook | undefined>;
+  hooks?: Record<string, Hook>;
 }
 export type FullUserConfig = RequiredDeep<UserConfig>;
 /**

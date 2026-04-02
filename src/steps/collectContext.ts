@@ -51,6 +51,10 @@ async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
 }
 
 async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
+  console.log(config);
+
+  console.log("--------------");
+
   const { stdout: branch } = await execa("git", [
     "rev-parse",
     "--abbrev-ref",
@@ -76,6 +80,9 @@ async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
   if (!info) return;
+  console.log("----------------------");
+  console.log(info);
+  console.log("----------------------");
 
   Object.assign((ctx.repo ??= {}), {
     repository: info.project,

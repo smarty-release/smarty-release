@@ -1,4 +1,4 @@
-import { runHook } from "./hooks.ts";
+import { runHook } from "./utils/hooks.ts";
 import { formatDuration, createTimer } from "./utils/timer.ts";
 import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
@@ -22,7 +22,9 @@ import {
 export async function release(config: UserConfig = {}) {
   const resolvedConfig = merge({}, defaultsConf, config);
 
-  const ctx: ReleaseContext = await collectContext(config);
+  console.log(resolvedConfig);
+
+  const ctx: ReleaseContext = await collectContext(resolvedConfig);
   const timer = createTimer();
 
   // 流程开始
