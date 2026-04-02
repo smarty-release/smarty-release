@@ -1,42 +1,41 @@
-export class CancelledError extends Error {
+// 基础错误类
+export class BaseError extends Error {
   code: string;
+
+  constructor(code: string, message: string) {
+    super(message);
+    this.code = code;
+    this.name = this.constructor.name; // 自动使用类名作为 name
+
+    // 修复 TS 的 Error 继承问题
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+// 用户取消错误
+export class CancelledError extends BaseError {
   isCancelled: boolean;
 
   constructor(message: string = "Release cancelled by user") {
-    super(message);
-    this.name = "CancelledError";
-    this.code = "USER_CANCEL";
+    super("USER_CANCEL", message);
     this.isCancelled = true;
-
-    // 修复 TS 的继承 Error 时原型链问题
-    Object.setPrototypeOf(this, CancelledError.prototype);
   }
 }
 
-export class NotGitRepoError extends Error {
-  code: string;
-
+// 当前目录非 Git 仓库错误
+export class NotGitRepoError extends BaseError {
   constructor(
     message: string = "Current working directory is not a git repository.",
   ) {
-    super(message);
-    this.name = "NotGitRepoError";
-    this.code = "NOT_GIT_REPO";
-
-    Object.setPrototypeOf(this, NotGitRepoError.prototype);
+    super("NOT_GIT_REPO", message);
   }
 }
 
-export class GitDirtyError extends Error {
-  code: string;
-
+// Git 工作目录不干净错误
+export class GitDirtyError extends BaseError {
   constructor(
     message: string = "Working directory is not clean. Please commit your changes.",
   ) {
-    super(message);
-    this.name = "GitDirtyError";
-    this.code = "GIT_DIRTY";
-
-    Object.setPrototypeOf(this, GitDirtyError.prototype);
+    super("GIT_DIRTY", message);
   }
 }

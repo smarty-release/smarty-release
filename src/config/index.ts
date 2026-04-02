@@ -1,17 +1,32 @@
 import { resolve } from "node:path";
+import type { Loader } from "lilconfig";
 import { lilconfig, LilconfigResult } from "lilconfig";
 import { access, constants } from "node:fs/promises";
 import { merge } from "lodash-es";
+import { pathToFileURL } from "node:url";
 
 export * from "./types.ts";
 
+const loadTs: Loader = async (filepath) => {
+  const url = pathToFileURL(filepath).href;
+  const mod = await import(url);
+
+  return mod.default ?? mod;
+};
+
 async function loadConfig<T extends Record<string, any> = Record<string, any>>(
-  configKey: string,
+  name: string,
   customPath?: string,
   overrides?: Partial<T>,
 ): Promise<T> {
   let result: LilconfigResult | null;
-  const explorer = lilconfig(configKey);
+  const explorer = lilconfig(name, {
+    loaders: {
+      ".mts": loadTs,
+      ".ts": loadTs,
+    },
+    searchPlaces: [`${name}.config.ts`, `${name}.config.mts`],
+  });
   if (customPath) {
     // 传递了config选项
     const filepath = resolve(process.cwd(), customPath);
@@ -20,7 +35,7 @@ async function loadConfig<T extends Record<string, any> = Record<string, any>>(
     const exists = await fileExists(filepath);
 
     if (!exists) {
-      throw new Error(`No ${configKey} configuration found.`);
+      throw new Error(`No ${name} configuration found.`);
     }
     result = await explorer.load(filepath);
   } else {
