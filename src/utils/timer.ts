@@ -10,7 +10,7 @@ export function createTimer() {
   };
 }
 
-export function formatDuration(ms) {
+export function formatDuration(ms: number) {
   if (ms < 1000) return `${ms.toFixed(0)}ms`;
 
   const s = ms / 1000;

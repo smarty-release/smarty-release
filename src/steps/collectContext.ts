@@ -27,7 +27,7 @@ export async function collectContext(
   return ctx;
 }
 
-async function collectPackageContext(config: UserConfig, ctx: ReleaseContext) {
+async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
   const pkgPath = resolve(ctx.cwd!, "package.json");
 
   let pkg;

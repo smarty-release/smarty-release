@@ -1,12 +1,13 @@
 import PackageJson from "@npmcli/package-json";
+import { ReleaseContext, UserConfig } from "../config.ts";
 
-export async function bump(config, ctx) {
-  const pkgJson = await PackageJson.load(ctx.cwd);
+export async function bump(_config: UserConfig, ctx: ReleaseContext) {
+  const pkgJson = await PackageJson.load(ctx.cwd!);
 
   pkgJson.update({
-    version: ctx.version,
+    version: ctx.version!,
     publishConfig: {
-      tag: ctx.tag,
+      tag: ctx.tag!,
     },
   });
 

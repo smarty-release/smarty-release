@@ -1,12 +1,13 @@
 import prompts from "prompts";
 import semver from "semver";
 import { CancelledError } from "../errors.ts";
+import { ReleaseContext, UserConfig } from "../config.ts";
 
-export async function selectTag(config, ctx) {
-  const isPrerelease = !!semver.prerelease(ctx.version);
+export async function selectTag(config: UserConfig, ctx: ReleaseContext) {
+  const isPrerelease = !!semver.prerelease(ctx.version!);
 
-  const choices = config.tags
-    .map((tag) => {
+  const choices = config
+    .tags!.map((tag) => {
       const disabled = isPrerelease && tag === "latest";
 
       return {

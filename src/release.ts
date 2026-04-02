@@ -4,8 +4,7 @@ import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
-import type { PartialDeep, RequiredDeep, ReadonlyDeep } from "type-fest";
-import type { UserConfig, ReleaseContext } from "./config.ts";
+import type { UserConfig, ReleaseContext } from "./config/types.ts";
 
 import {
   selectVersion,
@@ -21,60 +20,60 @@ import {
 } from "./steps/index.ts";
 
 export async function release(config: UserConfig = {}) {
-  config = merge({}, defaultsConf, config);
+  const resolvedConfig = merge({}, defaultsConf, config);
 
   const ctx: ReleaseContext = await collectContext(config);
   const timer = createTimer();
 
   // 流程开始
-  await runHook(config.hooks?.["before:init"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:init"], ctx);
   // 选择版本
-  await runHook(config.hooks?.["before:selectVersion"], ctx);
-  await selectVersion(config, ctx);
-  await runHook(config.hooks?.["after:selectVersion"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:selectVersion"], ctx);
+  await selectVersion(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:selectVersion"], ctx);
 
   // 选择tag
-  await runHook(config.hooks?.["before:selectTag"], ctx);
-  await selectTag(config, ctx);
-  await runHook(config.hooks?.["after:selectTag"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:selectTag"], ctx);
+  await selectTag(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (config.changelog !== false) {
-    await runHook(config.hooks?.["before:changelog"], ctx);
-    await genChangelog(config, ctx);
-    await runHook(config.hooks?.["after:changelog"], ctx);
+  if (resolvedConfig.changelog) {
+    await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
+    await genChangelog(resolvedConfig, ctx);
+    await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
   }
   // bump
-  await runHook(config.hooks?.["before:bump"], ctx);
-  await bump(config, ctx);
-  await runHook(config.hooks?.["after:bump"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:bump"], ctx);
+  await bump(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:bump"], ctx);
 
   // 总结阶段
-  await summary(config, ctx);
+  await summary(resolvedConfig, ctx);
   // git系列
-  await runHook(config.hooks?.["before:git"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git"], ctx);
 
   // git 具体步骤
-  await runHook(config.hooks?.["before:git.add"], ctx);
-  await gitAdd(config, ctx);
-  await runHook(config.hooks?.["after:git.add"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.add"], ctx);
+  await gitAdd(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.add"], ctx);
 
-  await runHook(config.hooks?.["before:git.commit"], ctx);
-  await gitCommit(config, ctx);
-  await runHook(config.hooks?.["after:git.commit"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.commit"], ctx);
+  await gitCommit(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.commit"], ctx);
 
-  await runHook(config.hooks?.["before:git.tag"], ctx);
-  await gitTag(config, ctx);
-  await runHook(config.hooks?.["after:git.tag"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.tag"], ctx);
+  await gitTag(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.tag"], ctx);
 
-  await runHook(config.hooks?.["before:git.push"], ctx);
-  await gitPush(config, ctx);
-  await runHook(config.hooks?.["after:git.push"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.push"], ctx);
+  await gitPush(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.push"], ctx);
 
-  await runHook(config.hooks?.["after:git"], ctx);
+  await runHook(resolvedConfig.hooks?.["after:git"], ctx);
 
   // 流程走完之后
-  await runHook(config.hooks?.["after:release"], ctx);
+  await runHook(resolvedConfig.hooks?.["after:release"], ctx);
 
   const cost = formatDuration(timer.end());
   logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));

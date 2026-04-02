@@ -228,9 +228,10 @@ src/config/types.ts内容如下：
 
 type Hook = string | Function | (string | Function)[];
 type ChangelogOptions = {
-  args?: string;
+  args?: string | string[];
   template?: unknown[];
 };
+
 /**
  * Options for release-pls.
  */
@@ -249,7 +250,7 @@ export interface UserConfig {
    */
   tags?: string[];
   /** 控制变更日志是否生成 */
-  changelog?: boolean | ChangelogOptions;
+  changelog?: false | ChangelogOptions;
   /** 控制 Git 操作行为 */
   git?: {
     requireBranch?: boolean | string;
@@ -264,23 +265,20 @@ export interface UserConfig {
  * CLI运行时产生的一些配置
  */
 export interface ReleaseContext {
-  cwd?: string;
-  env?: NodeJS.ProcessEnv;
+  cwd: string;
+  env: NodeJS.ProcessEnv;
   name?: string;
+  tag?: string;
   version?: string;
 
   git?: {
-    branch: string;
+    branch?: string;
   };
 
   repo?: {
-    owner: string;
-    repository: string;
+    owner?: string;
+    repository?: string;
   };
-}
-export interface InlineConfig {
-  config: UserConfig;
-  ctx: ReleaseContext;
 }
 
 
@@ -387,8 +385,7 @@ import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
-import type { PartialDeep, RequiredDeep, ReadonlyDeep } from "type-fest";
-import type { UserConfig, ReleaseContext } from "./config.ts";
+import type { UserConfig, ReleaseContext } from "./config/types.ts";
 
 import {
   selectVersion,
@@ -404,60 +401,60 @@ import {
 } from "./steps/index.ts";
 
 export async function release(config: UserConfig = {}) {
-  config = merge({}, defaultsConf, config);
+  const resolvedConfig = merge({}, defaultsConf, config);
 
   const ctx: ReleaseContext = await collectContext(config);
   const timer = createTimer();
 
   // 流程开始
-  await runHook(config.hooks?.["before:init"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:init"], ctx);
   // 选择版本
-  await runHook(config.hooks?.["before:selectVersion"], ctx);
-  await selectVersion(config, ctx);
-  await runHook(config.hooks?.["after:selectVersion"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:selectVersion"], ctx);
+  await selectVersion(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:selectVersion"], ctx);
 
   // 选择tag
-  await runHook(config.hooks?.["before:selectTag"], ctx);
-  await selectTag(config, ctx);
-  await runHook(config.hooks?.["after:selectTag"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:selectTag"], ctx);
+  await selectTag(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (config.changelog !== false) {
-    await runHook(config.hooks?.["before:changelog"], ctx);
-    await genChangelog(config, ctx);
-    await runHook(config.hooks?.["after:changelog"], ctx);
+  if (resolvedConfig.changelog !== false) {
+    await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
+    await genChangelog(resolvedConfig, ctx);
+    await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
   }
   // bump
-  await runHook(config.hooks?.["before:bump"], ctx);
-  await bump(config, ctx);
-  await runHook(config.hooks?.["after:bump"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:bump"], ctx);
+  await bump(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:bump"], ctx);
 
   // 总结阶段
-  await summary(config, ctx);
+  await summary(resolvedConfig, ctx);
   // git系列
-  await runHook(config.hooks?.["before:git"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git"], ctx);
 
   // git 具体步骤
-  await runHook(config.hooks?.["before:git.add"], ctx);
-  await gitAdd(config, ctx);
-  await runHook(config.hooks?.["after:git.add"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.add"], ctx);
+  await gitAdd(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.add"], ctx);
 
-  await runHook(config.hooks?.["before:git.commit"], ctx);
-  await gitCommit(config, ctx);
-  await runHook(config.hooks?.["after:git.commit"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.commit"], ctx);
+  await gitCommit(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.commit"], ctx);
 
-  await runHook(config.hooks?.["before:git.tag"], ctx);
-  await gitTag(config, ctx);
-  await runHook(config.hooks?.["after:git.tag"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.tag"], ctx);
+  await gitTag(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.tag"], ctx);
 
-  await runHook(config.hooks?.["before:git.push"], ctx);
-  await gitPush(config, ctx);
-  await runHook(config.hooks?.["after:git.push"], ctx);
+  await runHook(resolvedConfig.hooks?.["before:git.push"], ctx);
+  await gitPush(resolvedConfig, ctx);
+  await runHook(resolvedConfig.hooks?.["after:git.push"], ctx);
 
-  await runHook(config.hooks?.["after:git"], ctx);
+  await runHook(resolvedConfig.hooks?.["after:git"], ctx);
 
   // 流程走完之后
-  await runHook(config.hooks?.["after:release"], ctx);
+  await runHook(resolvedConfig.hooks?.["after:release"], ctx);
 
   const cost = formatDuration(timer.end());
   logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
@@ -467,14 +464,15 @@ export async function release(config: UserConfig = {}) {
 src/steps/bump.ts内容如下：
 
 import PackageJson from "@npmcli/package-json";
+import { ReleaseContext, UserConfig } from "../config.ts";
 
-export async function bump(config, ctx) {
-  const pkgJson = await PackageJson.load(ctx.cwd);
+export async function bump(_config: UserConfig, ctx: ReleaseContext) {
+  const pkgJson = await PackageJson.load(ctx.cwd!);
 
   pkgJson.update({
-    version: ctx.version,
+    version: ctx.version!,
     publishConfig: {
-      tag: ctx.tag,
+      tag: ctx.tag!,
     },
   });
 
@@ -491,12 +489,16 @@ import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { UserConfig, ReleaseContext } from "../config/types.ts";
+import { isUndefined } from "lodash-es";
 
-export async function collectContext(config: UserConfig) {
+export async function collectContext(
+  config: UserConfig,
+): Promise<ReleaseContext> {
   const ctx: ReleaseContext = {
     cwd: process.cwd(),
     env: process.env,
   };
+
   const { isGitRepo, isClean } = await checkGitRepoStatus();
 
   if (!isGitRepo) throw new NotGitRepoError();
@@ -510,7 +512,7 @@ export async function collectContext(config: UserConfig) {
 }
 
 async function collectPackageContext(config: UserConfig, ctx: ReleaseContext) {
-  const pkgPath = resolve(ctx.cwd, "package.json");
+  const pkgPath = resolve(ctx.cwd!, "package.json");
 
   let pkg;
   try {
@@ -566,15 +568,18 @@ async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
 }
 
 async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
-  const { requireBranch } = config.git;
+  const { requireBranch } = config.git!;
 
   if (!requireBranch) return;
 
-  const current = ctx.git.branch;
+  const currentBranch = ctx.git!.branch;
+  if (isUndefined(currentBranch)) {
+    return;
+  }
 
-  if (!matchBranch(requireBranch, current)) {
+  if (!matchBranch(requireBranch, currentBranch)) {
     throw new Error(
-      `Release is only allowed on ${String(requireBranch)}, current: ${current}`,
+      `Release is only allowed on ${String(requireBranch)}, current: ${currentBranch}`,
     );
   }
 }
@@ -583,11 +588,11 @@ async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
 src/steps/genChangelog.ts内容如下：
 
 import { changelog } from "../changelog.ts";
+import { ReleaseContext, UserConfig } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
 
-export async function genChangelog(config, ctx) {
+export async function genChangelog(config: UserConfig, ctx: ReleaseContext) {
   // 格式化args参数
-
   config.changelog.args = transformArgs(config.changelog.args, ctx);
 
   await changelog(config, {
@@ -595,7 +600,7 @@ export async function genChangelog(config, ctx) {
   });
 }
 
-function transformArgs(input, ctx) {
+function transformArgs(input: string | string[], ctx: ReleaseContext) {
   if (typeof input !== "string" && !Array.isArray(input)) {
     throw new TypeError("Expected string or array");
   }
@@ -649,12 +654,13 @@ src/steps/selectTag.ts内容如下：
 import prompts from "prompts";
 import semver from "semver";
 import { CancelledError } from "../errors.ts";
+import { ReleaseContext, UserConfig } from "../config.ts";
 
-export async function selectTag(config, ctx) {
-  const isPrerelease = !!semver.prerelease(ctx.version);
+export async function selectTag(config: UserConfig, ctx: ReleaseContext) {
+  const isPrerelease = !!semver.prerelease(ctx.version!);
 
-  const choices = config.tags
-    .map((tag) => {
+  const choices = config
+    .tags!.map((tag) => {
       const disabled = isPrerelease && tag === "latest";
 
       return {
@@ -826,12 +832,16 @@ export async function summary(config, ctx) {
 
 src/utils/index.ts内容如下：
 
-import { execa } from "execa";
+import { execa, type Options, ResultPromise } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
+import { ReleaseContext } from "../config/types.ts";
 
-export const run = (bin, args, opts = {}) =>
-  execa(bin, args, { stdio: "pipe", ...opts });
+export const run = (
+  bin: string,
+  args: readonly string[] = [],
+  opts: Options = {},
+): ResultPromise => execa(bin, args, { stdio: "pipe", ...opts });
 
 export const logger = createConsola({
   defaults: {
@@ -871,11 +881,11 @@ export async function workerDirRestore(cwd = process.cwd()) {
   await run("git", ["clean", "-f"], { cwd });
 }
 
-export function renderTemplate(template, ctx) {
+export function renderTemplate(template: string, ctx: ReleaseContext): string {
   if (!template || typeof template !== "string") return template;
 
-  return template.replace(/\$\{([^}]+)\}/g, (_, expr) => {
-    const value = expr.split(".").reduce((acc, key) => acc?.[key], ctx);
+  return template.replace(/\$\{([^}]+)\}/g, (_, expr: string) => {
+    const value = expr.split(".").reduce<any>((acc, key) => acc?.[key], ctx);
 
     if (value == null) {
       throw new Error(`Template variable "${expr}" is not defined`);
@@ -885,11 +895,14 @@ export function renderTemplate(template, ctx) {
   });
 }
 
-export function blank(lines = 1) {
+export function blank(lines: number = 1): void {
   process.stdout.write("\n".repeat(lines));
 }
 
-export function matchBranch(requireBranch, current) {
+export function matchBranch(
+  requireBranch: string | string[] | RegExp | boolean,
+  current: string,
+): boolean {
   if (!requireBranch) return true;
 
   if (typeof requireBranch === "string") {

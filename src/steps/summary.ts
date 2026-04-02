@@ -1,4 +1,6 @@
 import prompts from "prompts";
+import { FullUserConfig, ReleaseContext } from "../config/types.ts";
+
 import { CancelledError } from "../errors.ts";
 import {
   workerDirRestore,
@@ -9,15 +11,15 @@ import {
 import { logger } from "../utils/index.js";
 import chalk from "chalk";
 
-export async function summary(config, ctx) {
-  const tagName = renderTemplate(config.git?.tagName, ctx);
+export async function summary(config: FullUserConfig, ctx: ReleaseContext) {
+  const tagName = renderTemplate(config.git.tagName, ctx);
 
-  const entries = [
-    ["Version", ctx.version],
-    ["Npm Dist Tag", ctx.tag],
-    ["Owner", ctx.repo.owner],
-    ["Repository", ctx.repo.repository],
-    ["Branch", ctx.git.branch],
+  const entries: [string, string][] = [
+    ["Version", ctx.version!],
+    ["Npm Dist Tag", ctx.tag!],
+    ["Owner", ctx!.repo!.owner!],
+    ["Repository", ctx!.repo!.repository!],
+    ["Branch", ctx!.git!.branch!],
     ["Git Tag", tagName],
   ];
 

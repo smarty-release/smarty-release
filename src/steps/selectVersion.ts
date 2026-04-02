@@ -1,12 +1,16 @@
 import prompts from "prompts";
 import { CancelledError } from "../errors.ts";
 import semver from "semver";
+import { FullUserConfig, ReleaseContext } from "../config/types.ts";
 
 const { inc, valid, prerelease } = semver;
 
-export async function selectVersion(config, ctx) {
+export async function selectVersion(
+  config: FullUserConfig,
+  ctx: ReleaseContext,
+) {
   let targetVersion;
-  const currentVersion = ctx.version;
+  const currentVersion = ctx.version!;
   const isPrerelease = prerelease(currentVersion);
 
   // 构建版本选项
