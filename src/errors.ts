@@ -1,12 +1,12 @@
+import type { LogType } from "consola";
 // 基础错误类
 export class BaseError extends Error {
-  code: string;
+  level: LogType;
 
-  constructor(code: string, message: string) {
+  constructor(message: string, level: LogType = "error") {
     super(message);
-    this.code = code;
     this.name = this.constructor.name; // 自动使用类名作为 name
-
+    this.level = level;
     // 修复 TS 的 Error 继承问题
     Object.setPrototypeOf(this, new.target.prototype);
   }
@@ -14,11 +14,8 @@ export class BaseError extends Error {
 
 // 用户取消错误
 export class CancelledError extends BaseError {
-  isCancelled: boolean;
-
   constructor(message: string = "Release cancelled by user") {
-    super("USER_CANCEL", message);
-    this.isCancelled = true;
+    super(message, "warn");
   }
 }
 
@@ -27,7 +24,7 @@ export class NotGitRepoError extends BaseError {
   constructor(
     message: string = "Current working directory is not a git repository.",
   ) {
-    super("NOT_GIT_REPO", message);
+    super(message);
   }
 }
 
@@ -36,6 +33,12 @@ export class GitDirtyError extends BaseError {
   constructor(
     message: string = "Working directory is not clean. Please commit your changes.",
   ) {
-    super("GIT_DIRTY", message);
+    super(message);
+  }
+}
+
+export class NotAllowedBranchError extends BaseError {
+  constructor(message: string) {
+    super(message);
   }
 }

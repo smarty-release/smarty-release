@@ -4,7 +4,7 @@ import { Command } from "commander";
 import { releaseCommand } from "./commands/release.ts";
 import { changelogCommand } from "./commands/changelog.ts";
 import { logger } from "./utils/index.js";
-import { CancelledError } from "./errors.js";
+import { BaseError } from "./errors.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { NAME } from "./constants/index.ts";
@@ -29,12 +29,13 @@ changelogCommand(program);
 try {
   await program.parseAsync(process.argv);
 } catch (err) {
-  if (err) {
-    err instanceof CancelledError
-      ? logger.warn(err.message)
-      : logger.error(err);
-    process.exit(1);
+  if (!err) process.exit(0);
+
+  if (err instanceof BaseError) {
+    logger[err.level](err.message);
   } else {
-    process.exit(0);
+    logger.error(err);
   }
+
+  process.exit(1);
 }

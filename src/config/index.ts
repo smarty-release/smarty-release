@@ -3,15 +3,18 @@ import type { Loader } from "lilconfig";
 import { lilconfig, LilconfigResult } from "lilconfig";
 import { access, constants } from "node:fs/promises";
 import { merge } from "lodash-es";
-import { pathToFileURL } from "node:url";
 
 export * from "./types.ts";
 
 const loadTs: Loader = async (filepath) => {
-  const url = pathToFileURL(filepath).href;
-  const mod = await import(url);
+  const { createJiti } = await import("jiti");
 
-  return mod.default ?? mod;
+  return createJiti(import.meta.url, { interopDefault: true }).import(
+    filepath,
+    {
+      default: true,
+    },
+  );
 };
 
 async function loadConfig<T extends Record<string, any> = Record<string, any>>(

@@ -1,5 +1,9 @@
 import { checkGitRepoStatus, matchBranch } from "../utils/index.js";
-import { NotGitRepoError, GitDirtyError } from "../errors.js";
+import {
+  NotGitRepoError,
+  GitDirtyError,
+  NotAllowedBranchError,
+} from "../errors.js";
 import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
@@ -101,7 +105,7 @@ async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
   }
 
   if (!matchBranch(requireBranch, currentBranch)) {
-    throw new Error(
+    throw new NotAllowedBranchError(
       `Release is only allowed on ${String(requireBranch)}, current: ${currentBranch}`,
     );
   }
