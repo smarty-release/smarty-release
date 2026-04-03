@@ -7,6 +7,15 @@ type ChangelogOptions = {
 };
 export type Hook = string | Function | (string | Function)[] | undefined;
 
+type DistTag =
+  | "latest"
+  | "next"
+  | "beta"
+  | "alpha"
+  | "canary"
+  | "rc"
+  | (string & {}); // 允许自定义
+
 /**
  * Options for release-pls.
  */
@@ -24,7 +33,7 @@ export interface UserConfig {
   /**
    * 发布时使用的 npm dist-tag
    */
-  tags?: string[];
+  tags?: DistTag[];
 
   /** 控制变更日志是否生成 */
   changelog?: false | ChangelogOptions;
