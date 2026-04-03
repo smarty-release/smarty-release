@@ -1,9 +1,70 @@
 import type { RequiredDeep } from "type-fest";
 import type { ReleaseType } from "semver";
 
+export type ChangelogPreset =
+  | "azure-devops-keepachangelog"
+  | "cocogitto"
+  | "detailed"
+  | "github-keepachangelog"
+  | "github"
+  | "keepachangelog"
+  | "minimal"
+  | "scoped"
+  | "scopesorted"
+  | "statistics"
+  | "unconventional"
+  | (string & {}); // 任意字符串，兼容远程链接
+
+// commit parser 类型
+export interface CommitParser {
+  message: string; // 正则或匹配字符串
+  group: string; // commit 分类
+}
+
+// git 配置
+export interface ChangelogGitConfig {
+  conventional_commits?: boolean;
+  filter_unconventional?: boolean;
+  commit_parsers?: CommitParser[];
+  filter_commits?: boolean;
+  topo_order?: boolean;
+  sort_commits?: "oldest" | "newest";
+}
+
+// changelog 内容配置
+export interface ChangelogContentConfig {
+  header?: string;
+  body?: string;
+  footer?: string;
+  trim?: boolean;
+}
+
+// remote 配置
+export interface ChangelogRemoteConfig {
+  github?: {
+    owner?: string;
+    repo?: string;
+    token?: string;
+  };
+  azure_devops?: {
+    owner?: string;
+    repo?: string;
+    token?: string;
+  };
+  [key: string]: any;
+}
+
+// presetOverride 配置
+export interface ChangelogPresetOverride {
+  remote?: ChangelogRemoteConfig;
+  changelog?: ChangelogContentConfig;
+  git?: ChangelogGitConfig;
+}
+
 type ChangelogOptions = {
+  preset?: ChangelogPreset;
   args?: string | string[];
-  template?: unknown[];
+  presetOverride?: ChangelogPresetOverride; // 对 preset 的覆盖
 };
 export type Hook = string | Function | (string | Function)[] | undefined;
 
@@ -35,11 +96,10 @@ export interface UserConfig {
    */
   tags?: DistTag[];
 
-  /** 控制变更日志是否生成 */
-  changelog?: false | ChangelogOptions;
-
   /** 控制 Git 操作行为 */
   git?: {
+    /** 变更日志是否生成 */
+    changelog?: false | ChangelogOptions;
     requireBranch?: string | string[] | RegExp | false;
     commitMessage?: string;
     tagName?: string;

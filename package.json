@@ -54,6 +54,7 @@
     "@types/npmcli__package-json": "^4.0.4",
     "@types/prompts": "^2.4.9",
     "@types/semver": "^7.7.1",
+    "fs-extra": "^11.3.4",
     "jiti": "^2.6.1",
     "lodash-es": "^4.17.23",
     "prettier": "^3.8.1",
