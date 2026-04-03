@@ -69,22 +69,19 @@ export function blank(lines: number = 1): void {
   process.stdout.write("\n".repeat(lines));
 }
 
-export function matchBranch(
-  requireBranch: RequireBranch,
-  current: string,
-): boolean {
-  if (!requireBranch) return true;
+export function matchBranch(rule: RequireBranch, current: string): boolean {
+  if (rule === false) return true;
 
-  if (typeof requireBranch === "string") {
-    return current === requireBranch;
+  if (typeof rule === "string") {
+    return current === rule;
   }
 
-  if (Array.isArray(requireBranch)) {
-    return requireBranch.includes(current);
+  if (Array.isArray(rule)) {
+    return rule.includes(current);
   }
 
-  if (requireBranch instanceof RegExp) {
-    return requireBranch.test(current);
+  if (rule instanceof RegExp) {
+    return rule.test(current);
   }
 
   return false;
