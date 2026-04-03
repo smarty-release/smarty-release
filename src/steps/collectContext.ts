@@ -8,11 +8,11 @@ import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { UserConfig, ReleaseContext } from "../config/types.ts";
+import { ReleaseContext, FullUserConfig } from "../config/types.ts";
 import { isUndefined } from "lodash-es";
 
 export async function collectContext(
-  config: UserConfig,
+  config: FullUserConfig,
 ): Promise<ReleaseContext> {
   const ctx: ReleaseContext = {
     cwd: process.cwd(),
@@ -31,7 +31,10 @@ export async function collectContext(
   return ctx;
 }
 
-async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
+async function collectPackageContext(
+  _config: FullUserConfig,
+  ctx: ReleaseContext,
+) {
   const pkgPath = resolve(ctx.cwd!, "package.json");
 
   let pkg;
@@ -54,7 +57,7 @@ async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
   });
 }
 
-async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
+async function collectGitContext(config: FullUserConfig, ctx: ReleaseContext) {
   console.log(config);
 
   console.log("--------------");
@@ -72,7 +75,7 @@ async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
   await assertAllowedBranch(config, ctx);
 }
 
-async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
+async function collectRepoContext(config: FullUserConfig, ctx: ReleaseContext) {
   let remoteUrl;
 
   try {
@@ -83,7 +86,7 @@ async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
   }
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
-  if (!info) return;
+  if (!info) return; // 这里应该直接报错
   console.log("----------------------");
   console.log(info);
   console.log("----------------------");
@@ -94,10 +97,13 @@ async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
   });
 }
 
-async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
-  const { requireBranch } = config.git!;
+async function assertAllowedBranch(
+  config: FullUserConfig,
+  ctx: ReleaseContext,
+) {
+  const { requireBranch } = config.git;
 
-  if (!requireBranch) return;
+  if (requireBranch === false) return;
 
   const currentBranch = ctx.git!.branch;
   if (isUndefined(currentBranch)) {

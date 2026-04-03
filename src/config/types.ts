@@ -1,5 +1,6 @@
 import type { RequiredDeep } from "type-fest";
 import type { ReleaseType } from "semver";
+
 type ChangelogOptions = {
   args?: string | string[];
   template?: unknown[];
@@ -19,18 +20,22 @@ export interface UserConfig {
    *  major → 破坏性更新（1.0.0 → 2.0.0）
    */
   increments?: ReleaseType[];
+
   /**
    * 发布时使用的 npm dist-tag
    */
   tags?: string[];
+
   /** 控制变更日志是否生成 */
   changelog?: false | ChangelogOptions;
+
   /** 控制 Git 操作行为 */
   git?: {
-    requireBranch?: boolean | string;
+    requireBranch?: string | string[] | RegExp | false;
     commitMessage?: string;
     tagName?: string;
   };
+
   /** 生命周期钩子 */
   hooks?: Record<string, Hook>;
 }
@@ -54,3 +59,5 @@ export interface ReleaseContext {
     repository?: string;
   };
 }
+
+export type { ReleaseType } from "semver";

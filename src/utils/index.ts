@@ -1,7 +1,11 @@
 import { execa, type Options, ResultPromise } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
-import { ReleaseContext } from "../config/types.ts";
+import { ReleaseContext, UserConfig } from "../config/types.ts";
+
+type RequireBranch = NonNullable<
+  NonNullable<UserConfig["git"]>["requireBranch"]
+>;
 
 export const run = (
   bin: string,
@@ -66,7 +70,7 @@ export function blank(lines: number = 1): void {
 }
 
 export function matchBranch(
-  requireBranch: string | string[] | RegExp | boolean,
+  requireBranch: RequireBranch,
   current: string,
 ): boolean {
   if (!requireBranch) return true;
