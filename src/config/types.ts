@@ -77,44 +77,36 @@ type DistTag =
   | "rc"
   | (string & {}); // 允许自定义
 
-export type HookContextMap = {
-  "before:init": { logger: ConsolaInstance };
-  "before:selectVersion": { logger: ConsolaInstance };
-  "after:selectVersion": { version: string; logger: ConsolaInstance };
-  "after:bump": { version: string };
-  "after:release": { version: string };
-  "before:selectTag": { version: string };
-  "after:selectTag": { version: string };
-  "before:changelog": { version: string };
-  "after:changelog": { version: string };
-  "before:bump": { version: string };
-  "before:git": { version: string };
-  "before:git.add": { version: string };
-  "after:git.add": { version: string };
-  "before:git.commit": { version: string };
-  "after:git.commit": { version: string };
-  "before:git.tag": { version: string };
-  "after:git.tag": { version: string };
-  "before:git.push": { version: string };
-  "after:git.push": { version: string };
-  "after:git": { version: string };
+export type HookEvent =
+  | "before:init"
+  | "before:selectVersion"
+  | "after:selectVersion"
+  | "after:bump"
+  | "after:release"
+  | "before:selectTag"
+  | "after:selectTag"
+  | "before:changelog"
+  | "after:changelog"
+  | "before:bump"
+  | "before:git"
+  | "before:git.add"
+  | "after:git.add"
+  | "before:git.commit"
+  | "after:git.commit"
+  | "before:git.tag"
+  | "after:git.tag"
+  | "before:git.push"
+  | "after:git.push"
+  | "after:git";
+
+export type HookContext = ReleaseContext & {
+  logger: ConsolaInstance;
+  cancel(message: string): never;
 };
+type HookFn = (ctx: HookContext) => any | Promise<any>;
 
-type HookFn<K extends keyof HookContextMap> = (
-  ctx: HookContextMap[K],
-) => any | Promise<any>;
-
-export type Hook<K extends keyof HookContextMap> =
-  | string
-  | HookFn<K>
-  | (string | HookFn<K>)[];
-
-type Hooks = {
-  [K in keyof HookContextMap]?: Hook<K>;
-};
-
-export type AnyHook = Hook<keyof HookContextMap>;
-
+export type Hook = string | HookFn | (string | HookFn)[];
+export type Hooks = Partial<Record<HookEvent, Hook>>;
 /**
  * Options for release-pls.
  */
@@ -150,7 +142,7 @@ export interface UserConfig {
 export type ResolvedConfig = OverrideProperties<
   RequiredDeep<UserConfig>,
   {
-    hooks: Hooks; // 👈 覆盖回“key 可选”
+    hooks: Hooks;
     git: OverrideProperties<
       RequiredDeep<UserConfig>["git"],
       {
