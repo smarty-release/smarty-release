@@ -101,7 +101,7 @@ export type HookEvent =
 
 export type HookContext = ReleaseContext & {
   logger: ConsolaInstance;
-  cancel(message: string): never;
+  cancel(message?: string): never;
 };
 type HookFn = (ctx: HookContext) => any | Promise<any>;
 

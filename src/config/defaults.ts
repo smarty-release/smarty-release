@@ -15,7 +15,9 @@ const defaults = {
     tagName: "v${version}",
   },
 
-  hooks: {},
+  hooks: {
+    "before:init": undefined,
+  },
 } satisfies UserConfig;
 
 export default defaults;

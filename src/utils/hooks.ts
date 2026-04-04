@@ -10,7 +10,7 @@ function createHookContext(ctx: ReleaseContext) {
     ...ctx,
 
     logger,
-    cancel(message: string) {
+    cancel(message?: string) {
       throw new CancelledError(message);
     },
   };
