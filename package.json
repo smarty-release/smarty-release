@@ -47,7 +47,6 @@
     "tempy": "^3.2.0"
   },
   "devDependencies": {
-    "@clack/prompts": "^1.2.0",
     "@types/hosted-git-info": "^3.0.5",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^25.5.0",

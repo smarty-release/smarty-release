@@ -80,8 +80,16 @@ import { Command } from "commander";
 import { releaseCommand } from "./commands/release.ts";
 import { changelogCommand } from "./commands/changelog.ts";
 import { logger } from "./utils/index.js";
-import { CancelledError } from "./errors.js";
+import { BaseError } from "./errors.js";
 import pkg from "../package.json" with { type: "json" };
+import lt from "semver/functions/lt.js";
+import { NAME } from "./constants/index.ts";
+
+if (lt(process.version, "22.18.0")) {
+  logger.warn(
+    `[${NAME}] Node.js ${process.version} is deprecated. Support will be removed in the next minor release. Please upgrade to Node.js 22.18.0 or later.`,
+  );
+}
 
 const program = new Command();
 
@@ -97,14 +105,15 @@ changelogCommand(program);
 try {
   await program.parseAsync(process.argv);
 } catch (err) {
-  if (err) {
-    err instanceof CancelledError
-      ? logger.warn(err.message)
-      : logger.error(err);
-    process.exit(1);
+  if (!err) process.exit(0);
+
+  if (err instanceof BaseError) {
+    logger[err.level](err.message);
   } else {
-    process.exit(0);
+    logger.error(err);
   }
+
+  process.exit(1);
 }
 
 
@@ -155,41 +164,63 @@ export function releaseCommand(program: Command) {
 
 src/config/defaults.ts内容如下：
 
-export default {
+import type { UserConfig } from "./types.ts";
+
+const defaults = {
   increments: ["patch", "minor", "major"],
   tags: ["latest", "next"],
 
-  changelog: {
-    args: "-o --tag ${version}",
-    template: [],
-  },
-
   git: {
+    // 变更日志
+    changelog: {
+      args: "-o --tag ${version}",
+      preset: "github",
+    },
     requireBranch: false,
     commitMessage: "release: v${version}",
     tagName: "v${version}",
   },
 
   hooks: {},
-};
+} satisfies UserConfig;
+
+export default defaults;
 
 
 src/config/index.ts内容如下：
 
 import { resolve } from "node:path";
+import type { Loader } from "lilconfig";
 import { lilconfig, LilconfigResult } from "lilconfig";
 import { access, constants } from "node:fs/promises";
 import { merge } from "lodash-es";
 
 export * from "./types.ts";
 
+const loadTs: Loader = async (filepath) => {
+  const { createJiti } = await import("jiti");
+
+  return createJiti(import.meta.url, { interopDefault: true }).import(
+    filepath,
+    {
+      default: true,
+    },
+  );
+};
+
 async function loadConfig<T extends Record<string, any> = Record<string, any>>(
-  configKey: string,
+  name: string,
   customPath?: string,
   overrides?: Partial<T>,
 ): Promise<T> {
   let result: LilconfigResult | null;
-  const explorer = lilconfig(configKey);
+  const explorer = lilconfig(name, {
+    loaders: {
+      ".mts": loadTs,
+      ".ts": loadTs,
+    },
+    searchPlaces: [`${name}.config.ts`, `${name}.config.mts`],
+  });
   if (customPath) {
     // 传递了config选项
     const filepath = resolve(process.cwd(), customPath);
@@ -198,7 +229,7 @@ async function loadConfig<T extends Record<string, any> = Record<string, any>>(
     const exists = await fileExists(filepath);
 
     if (!exists) {
-      throw new Error(`No ${configKey} configuration found.`);
+      throw new Error(`No ${name} configuration found.`);
     }
     result = await explorer.load(filepath);
   } else {
@@ -226,13 +257,122 @@ export { loadConfig };
 
 src/config/types.ts内容如下：
 
-import type { RequiredDeep } from "type-fest";
 import type { ReleaseType } from "semver";
-type Hook = string | Function | (string | Function)[];
+import type { OverrideProperties, RequiredDeep } from "type-fest";
+import type { ConsolaInstance } from "consola";
+
+export type ChangelogPreset =
+  | "azure-devops-keepachangelog"
+  | "cocogitto"
+  | "detailed"
+  | "github-keepachangelog"
+  | "github"
+  | "keepachangelog"
+  | "minimal"
+  | "scoped"
+  | "scopesorted"
+  | "statistics"
+  | "unconventional"
+  | (string & {}); // 任意字符串，兼容远程链接
+
+// commit parser 类型
+export interface CommitParser {
+  message: string; // 正则或匹配字符串
+  group: string; // commit 分类
+}
+
+// git 配置
+export interface ChangelogGitConfig {
+  conventional_commits?: boolean;
+  filter_unconventional?: boolean;
+  commit_parsers?: CommitParser[];
+  filter_commits?: boolean;
+  topo_order?: boolean;
+  sort_commits?: "oldest" | "newest";
+}
+
+// changelog 内容配置
+export interface ChangelogContentConfig {
+  header?: string;
+  body?: string;
+  footer?: string;
+  trim?: boolean;
+}
+
+// remote 配置
+export interface ChangelogRemoteConfig {
+  github?: {
+    owner?: string;
+    repo?: string;
+    token?: string;
+  };
+  azure_devops?: {
+    owner?: string;
+    repo?: string;
+    token?: string;
+  };
+  [key: string]: any;
+}
+
+// presetOverride 配置
+export interface ChangelogPresetOverride {
+  remote?: ChangelogRemoteConfig;
+  changelog?: ChangelogContentConfig;
+  git?: ChangelogGitConfig;
+}
+
 type ChangelogOptions = {
   args?: string | string[];
-  template?: unknown[];
+  preset?: ChangelogPreset;
+  presetOverride?: ChangelogPresetOverride; // 对 preset 的覆盖
 };
+
+type DistTag =
+  | "latest"
+  | "next"
+  | "beta"
+  | "alpha"
+  | "canary"
+  | "rc"
+  | (string & {}); // 允许自定义
+
+export type HookContextMap = {
+  "before:init": { logger: ConsolaInstance };
+  "before:selectVersion": { logger: ConsolaInstance };
+  "after:selectVersion": { version: string; logger: ConsolaInstance };
+  "after:bump": { version: string };
+  "after:release": { version: string };
+  "before:selectTag": { version: string };
+  "after:selectTag": { version: string };
+  "before:changelog": { version: string };
+  "after:changelog": { version: string };
+  "before:bump": { version: string };
+  "before:git": { version: string };
+  "before:git.add": { version: string };
+  "after:git.add": { version: string };
+  "before:git.commit": { version: string };
+  "after:git.commit": { version: string };
+  "before:git.tag": { version: string };
+  "after:git.tag": { version: string };
+  "before:git.push": { version: string };
+  "after:git.push": { version: string };
+  "after:git": { version: string };
+};
+
+type HookFn<K extends keyof HookContextMap> = (
+  ctx: HookContextMap[K],
+) => any | Promise<any>;
+
+export type Hook<K extends keyof HookContextMap> =
+  | string
+  | HookFn<K>
+  | (string | HookFn<K>)[];
+
+type Hooks = {
+  [K in keyof HookContextMap]?: Hook<K>;
+};
+
+export type AnyHook = Hook<keyof HookContextMap>;
 
 /**
  * Options for release-pls.
@@ -247,22 +387,43 @@ export interface UserConfig {
    *  major → 破坏性更新（1.0.0 → 2.0.0）
    */
   increments?: ReleaseType[];
+
   /**
    * 发布时使用的 npm dist-tag
    */
-  tags?: string[];
-  /** 控制变更日志是否生成 */
-  changelog?: false | ChangelogOptions;
+  tags?: DistTag[];
+
   /** 控制 Git 操作行为 */
   git?: {
-    requireBranch?: boolean | string;
+    /** 变更日志是否生成 */
+    changelog?: false | ChangelogOptions;
+    requireBranch?: string | string[] | RegExp | false;
     commitMessage?: string;
     tagName?: string;
   };
+
   /** 生命周期钩子 */
-  hooks?: Record<string, Hook | undefined>;
+  hooks?: Hooks;
 }
-export type FullUserConfig = RequiredDeep<UserConfig>;
+
+export type ResolvedConfig = OverrideProperties<
+  RequiredDeep<UserConfig>,
+  {
+    hooks: Hooks; // 👈 覆盖回“key 可选”
+    git: OverrideProperties<
+      RequiredDeep<UserConfig>["git"],
+      {
+        changelog:
+          | false
+          | OverrideProperties<
+              RequiredDeep<ChangelogOptions>,
+              { presetOverride?: ChangelogPresetOverride }
+            >;
+      }
+    >;
+  }
+>;
+
 /**
  * CLI运行时产生的一些配置
  */
@@ -283,6 +444,8 @@ export interface ReleaseContext {
   };
 }
 
+export type { ReleaseType } from "semver";
+
 
 src/config.ts内容如下：
 
@@ -302,73 +465,48 @@ export const NAME = "release-pls";
 
 src/errors.ts内容如下：
 
-export class CancelledError extends Error {
-  constructor(message = "Release cancelled by user") {
+import type { LogType } from "consola";
+// 基础错误类
+export class BaseError extends Error {
+  level: LogType;
+
+  constructor(message: string, level: LogType = "error") {
     super(message);
-    this.name = "CancelledError";
-    this.code = "USER_CANCEL";
-    this.isCancelled = true;
-  }
-}
-export class NotGitRepoError extends Error {
-  constructor(message = "Current working directory is not a git repository.") {
-    super(message);
-    this.name = "NotGitRepoError";
-    this.code = "NOT_GIT_REPO";
+    this.name = this.constructor.name; // 自动使用类名作为 name
+    this.level = level;
+    // 修复 TS 的 Error 继承问题
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
-export class GitDirtyError extends Error {
+// 用户取消错误
+export class CancelledError extends BaseError {
+  constructor(message: string = "Release cancelled by user") {
+    super(message, "warn");
+  }
+}
+
+// 当前目录非 Git 仓库错误
+export class NotGitRepoError extends BaseError {
   constructor(
-    message = "Working directory is not clean. Please commit your changes.",
+    message: string = "Current working directory is not a git repository.",
   ) {
     super(message);
-    this.name = "GitDirtyError";
-    this.code = "GIT_DIRTY";
   }
 }
 
-
-src/hooks.ts内容如下：
-
-import { execa } from "execa";
-import { CancelledError } from "./errors.js";
-import { renderTemplate } from "./utils/index.js";
-import { logger } from "./utils/index.js";
-function createHookContext(ctx) {
-  return {
-    ...ctx,
-
-    logger,
-    cancel(message) {
-      throw new CancelledError(message);
-    },
-  };
+// Git 工作目录不干净错误
+export class GitDirtyError extends BaseError {
+  constructor(
+    message: string = "Working directory is not clean. Please commit your changes.",
+  ) {
+    super(message);
+  }
 }
 
-export async function runHook(hook, ctx) {
-  if (!hook) return;
-
-  const hookCtx = createHookContext(ctx);
-
-  // string：shell 命令
-  if (typeof hook === "string") {
-    const cmd = renderTemplate(hook, ctx);
-    await execa(cmd, { shell: true, stdio: "inherit" });
-    return;
-  }
-
-  // function
-  if (typeof hook === "function") {
-    await hook(hookCtx);
-    return;
-  }
-
-  // array
-  if (Array.isArray(hook)) {
-    for (const h of hook) {
-      await runHook(h, ctx); // 继续传原始 ctx
-    }
+export class NotAllowedBranchError extends BaseError {
+  constructor(message: string) {
+    super(message);
   }
 }
 
@@ -381,7 +519,7 @@ export * from "./config/types.ts";
 
 src/release.ts内容如下：
 
-import { runHook } from "./hooks.ts";
+import { runHook } from "./utils/hooks.ts";
 import { formatDuration, createTimer } from "./utils/timer.ts";
 import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
@@ -405,7 +543,7 @@ import {
 export async function release(config: UserConfig = {}) {
   const resolvedConfig = merge({}, defaultsConf, config);
 
-  const ctx: ReleaseContext = await collectContext(config);
+  const ctx: ReleaseContext = await collectContext(resolvedConfig);
   const timer = createTimer();
 
   // 流程开始
@@ -485,16 +623,20 @@ export async function bump(_config: UserConfig, ctx: ReleaseContext) {
 src/steps/collectContext.ts内容如下：
 
 import { checkGitRepoStatus, matchBranch } from "../utils/index.js";
-import { NotGitRepoError, GitDirtyError } from "../errors.js";
+import {
+  NotGitRepoError,
+  GitDirtyError,
+  NotAllowedBranchError,
+} from "../errors.js";
 import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { UserConfig, ReleaseContext } from "../config/types.ts";
+import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import { isUndefined } from "lodash-es";
 
 export async function collectContext(
-  config: UserConfig,
+  config: ResolvedConfig,
 ): Promise<ReleaseContext> {
   const ctx: ReleaseContext = {
     cwd: process.cwd(),
@@ -513,7 +655,10 @@ export async function collectContext(
   return ctx;
 }
 
-async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
+async function collectPackageContext(
+  _config: ResolvedConfig,
+  ctx: ReleaseContext,
+) {
   const pkgPath = resolve(ctx.cwd!, "package.json");
 
   let pkg;
@@ -536,7 +681,11 @@ async function collectPackageContext(_config: UserConfig, ctx: ReleaseContext) {
   });
 }
 
-async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
+async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
+  console.log(config);
+
+  console.log("--------------");
+
   const { stdout: branch } = await execa("git", [
     "rev-parse",
     "--abbrev-ref",
@@ -550,7 +699,7 @@ async function collectGitContext(config: UserConfig, ctx: ReleaseContext) {
   await assertAllowedBranch(config, ctx);
 }
 
-async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
+async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
   let remoteUrl;
 
   try {
@@ -561,7 +710,10 @@ async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
   }
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
-  if (!info) return;
+  if (!info) return; // 这里应该直接报错
+  console.log("----------------------");
+  console.log(info);
+  console.log("----------------------");
 
   Object.assign((ctx.repo ??= {}), {
     repository: info.project,
@@ -569,10 +721,13 @@ async function collectRepoContext(config: UserConfig, ctx: ReleaseContext) {
   });
 }
 
-async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
-  const { requireBranch } = config.git!;
+async function assertAllowedBranch(
+  config: ResolvedConfig,
+  ctx: ReleaseContext,
+) {
+  const { requireBranch } = config.git;
 
-  if (!requireBranch) return;
+  if (requireBranch === false) return;
 
   const currentBranch = ctx.git!.branch;
   if (isUndefined(currentBranch)) {
@@ -580,7 +735,7 @@ async function assertAllowedBranch(config: UserConfig, ctx: ReleaseContext) {
   }
 
   if (!matchBranch(requireBranch, currentBranch)) {
-    throw new Error(
+    throw new NotAllowedBranchError(
       `Release is only allowed on ${String(requireBranch)}, current: ${currentBranch}`,
     );
   }
@@ -849,12 +1004,66 @@ export async function summary(config: FullUserConfig, ctx: ReleaseContext) {
 }
 
 
+src/utils/hooks.ts内容如下：
+
+import { execa } from "execa";
+import { CancelledError } from "../errors.ts";
+import { renderTemplate } from "../utils/index.ts";
+import { logger } from "../utils/index.ts";
+import { ReleaseContext } from "../config.ts";
+import { AnyHook, Hook, HookContextMap } from "../config/types.ts";
+
+function createHookContext(ctx: ReleaseContext) {
+  return {
+    ...ctx,
+
+    logger,
+    cancel(message: string) {
+      throw new CancelledError(message);
+    },
+  };
+}
+
+export async function runHook<K extends keyof HookContextMap>(
+  hook: Hook<K> | undefined,
+  ctx: ReleaseContext,
+) {
+  if (!hook) return;
+
+  const hookCtx = createHookContext(ctx);
+
+  // string：shell 命令
+  if (typeof hook === "string") {
+    const cmd = renderTemplate(hook, ctx);
+    await execa(cmd, { shell: true, stdio: "inherit" });
+    return;
+  }
+
+  // function
+  if (typeof hook === "function") {
+    await hook(hookCtx);
+    return;
+  }
+
+  // array
+  if (Array.isArray(hook)) {
+    for (const h of hook) {
+      await runHook(h, ctx); // 继续传原始 ctx
+    }
+  }
+}
+
+
 src/utils/index.ts内容如下：
 
 import { execa, type Options, ResultPromise } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
-import { ReleaseContext } from "../config/types.ts";
+import { ReleaseContext, UserConfig } from "../config/types.ts";
+
+type RequireBranch = NonNullable<
+  NonNullable<UserConfig["git"]>["requireBranch"]
+>;
 
 export const run = (
   bin: string,
@@ -918,22 +1127,19 @@ export function blank(lines: number = 1): void {
   process.stdout.write("\n".repeat(lines));
 }
 
-export function matchBranch(
-  requireBranch: string | string[] | RegExp | boolean,
-  current: string,
-): boolean {
-  if (!requireBranch) return true;
+export function matchBranch(rule: RequireBranch, current: string): boolean {
+  if (rule === false) return true;
 
-  if (typeof requireBranch === "string") {
-    return current === requireBranch;
+  if (typeof rule === "string") {
+    return current === rule;
   }
 
-  if (Array.isArray(requireBranch)) {
-    return requireBranch.includes(current);
+  if (Array.isArray(rule)) {
+    return rule.includes(current);
   }
 
-  if (requireBranch instanceof RegExp) {
-    return requireBranch.test(current);
+  if (rule instanceof RegExp) {
+    return rule.test(current);
   }
 
   return false;

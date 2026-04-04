@@ -22,8 +22,6 @@ import {
 export async function release(config: UserConfig = {}) {
   const resolvedConfig = merge({}, defaultsConf, config);
 
-  console.log(resolvedConfig);
-
   const ctx: ReleaseContext = await collectContext(resolvedConfig);
   const timer = createTimer();
 

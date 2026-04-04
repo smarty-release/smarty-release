@@ -8,11 +8,11 @@ import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { ReleaseContext, FullUserConfig } from "../config/types.ts";
+import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import { isUndefined } from "lodash-es";
 
 export async function collectContext(
-  config: FullUserConfig,
+  config: ResolvedConfig,
 ): Promise<ReleaseContext> {
   const ctx: ReleaseContext = {
     cwd: process.cwd(),
@@ -32,7 +32,7 @@ export async function collectContext(
 }
 
 async function collectPackageContext(
-  _config: FullUserConfig,
+  _config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
   const pkgPath = resolve(ctx.cwd!, "package.json");
@@ -57,7 +57,7 @@ async function collectPackageContext(
   });
 }
 
-async function collectGitContext(config: FullUserConfig, ctx: ReleaseContext) {
+async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
   console.log(config);
 
   console.log("--------------");
@@ -75,7 +75,7 @@ async function collectGitContext(config: FullUserConfig, ctx: ReleaseContext) {
   await assertAllowedBranch(config, ctx);
 }
 
-async function collectRepoContext(config: FullUserConfig, ctx: ReleaseContext) {
+async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
   let remoteUrl;
 
   try {
@@ -98,7 +98,7 @@ async function collectRepoContext(config: FullUserConfig, ctx: ReleaseContext) {
 }
 
 async function assertAllowedBranch(
-  config: FullUserConfig,
+  config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
   const { requireBranch } = config.git;

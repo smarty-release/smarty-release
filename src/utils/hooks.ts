@@ -3,7 +3,8 @@ import { CancelledError } from "../errors.ts";
 import { renderTemplate } from "../utils/index.ts";
 import { logger } from "../utils/index.ts";
 import { ReleaseContext } from "../config.ts";
-import { Hook } from "../config/types.ts";
+import { AnyHook, Hook, HookContextMap } from "../config/types.ts";
+
 function createHookContext(ctx: ReleaseContext) {
   return {
     ...ctx,
@@ -15,7 +16,10 @@ function createHookContext(ctx: ReleaseContext) {
   };
 }
 
-export async function runHook(hook: Hook, ctx: ReleaseContext) {
+export async function runHook<K extends keyof HookContextMap>(
+  hook: Hook<K> | undefined,
+  ctx: ReleaseContext,
+) {
   if (!hook) return;
 
   const hookCtx = createHookContext(ctx);
