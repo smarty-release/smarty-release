@@ -64,8 +64,8 @@ export interface ChangelogPresetOverride {
 
 type ChangelogOptions = {
   args?: string | string[];
-  preset?: ChangelogPreset;
-  presetOverride?: ChangelogPresetOverride; // 对 preset 的覆盖
+  template?: ChangelogPreset;
+  config?: ChangelogPresetOverride; // 对 template 的覆盖
 };
 
 type DistTag =
@@ -151,7 +151,7 @@ export type ResolvedConfig = OverrideProperties<
           | false
           | OverrideProperties<
               RequiredDeep<ChangelogOptions>,
-              { presetOverride?: ChangelogPresetOverride }
+              { config?: ChangelogPresetOverride }
             >;
       }
     >;
