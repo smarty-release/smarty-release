@@ -8,8 +8,8 @@ const defaults = {
     // 变更日志
     changelog: {
       args: "-o --tag ${version}",
-      preset: "github",
-      presetOverride: undefined,
+      template: "github",
+      config: undefined,
     },
     requireBranch: false,
     commitMessage: "release: v${version}",

@@ -9,13 +9,14 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parse, stringify } from "smol-toml";
 import { runGitCliff } from "git-cliff";
+import { ResolvedConfig, UserConfig } from "./config/types.ts";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 生成变更日志
-export async function changelog(config = {}, execaOptions = {}) {
-  let { args, template } = merge({}, defaultsConf, config).changelog;
+export async function changelog(config: UserConfig = {}, execaOptions = {}) {
+  let { args, template } = merge({}, defaultsConf, config);
   args = filterArgs(args);
 
   let tmpConfigFile;
@@ -174,14 +175,36 @@ const defaults = {
     // 变更日志
     changelog: {
       args: "-o --tag ${version}",
-      preset: "github",
+      template: "github",
+      config: undefined,
     },
     requireBranch: false,
     commitMessage: "release: v${version}",
     tagName: "v${version}",
   },
 
-  hooks: {},
+  hooks: {
+    "before:init": undefined,
+    "before:selectVersion": undefined,
+    "after:selectVersion": undefined,
+    "after:bump": undefined,
+    "after:release": undefined,
+    "before:selectTag": undefined,
+    "after:selectTag": undefined,
+    "before:changelog": undefined,
+    "after:changelog": undefined,
+    "before:bump": undefined,
+    "before:git": undefined,
+    "before:git.add": undefined,
+    "after:git.add": undefined,
+    "before:git.commit": undefined,
+    "after:git.commit": undefined,
+    "before:git.tag": undefined,
+    "after:git.tag": undefined,
+    "before:git.push": undefined,
+    "after:git.push": undefined,
+    "after:git": undefined,
+  },
 } satisfies UserConfig;
 
 export default defaults;
@@ -258,7 +281,7 @@ export { loadConfig };
 src/config/types.ts内容如下：
 
 import type { ReleaseType } from "semver";
-import type { OverrideProperties, RequiredDeep } from "type-fest";
+import type { OverrideProperties, RequiredDeep, PartialDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
 
 export type ChangelogPreset =
@@ -323,8 +346,8 @@ export interface ChangelogPresetOverride {
 
 type ChangelogOptions = {
   args?: string | string[];
-  preset?: ChangelogPreset;
-  presetOverride?: ChangelogPresetOverride; // 对 preset 的覆盖
+  template?: ChangelogPreset;
+  config?: ChangelogPresetOverride; // 对 template 的覆盖
 };
 
 type DistTag =
@@ -336,43 +359,36 @@ type DistTag =
   | "rc"
   | (string & {}); // 允许自定义
 
-export type HookContextMap = {
-  "before:init": { logger: ConsolaInstance };
-  "before:selectVersion": { logger: ConsolaInstance };
-  "after:selectVersion": { version: string; logger: ConsolaInstance };
-  "after:bump": { version: string };
-  "after:release": { version: string };
-  "before:selectTag": { version: string };
-  "after:selectTag": { version: string };
-  "before:changelog": { version: string };
-  "after:changelog": { version: string };
-  "before:bump": { version: string };
-  "before:git": { version: string };
-  "before:git.add": { version: string };
-  "after:git.add": { version: string };
-  "before:git.commit": { version: string };
-  "after:git.commit": { version: string };
-  "before:git.tag": { version: string };
-  "after:git.tag": { version: string };
-  "before:git.push": { version: string };
-  "after:git.push": { version: string };
-  "after:git": { version: string };
+export type HookEvent =
+  | "before:init"
+  | "before:selectVersion"
+  | "after:selectVersion"
+  | "after:bump"
+  | "after:release"
+  | "before:selectTag"
+  | "after:selectTag"
+  | "before:changelog"
+  | "after:changelog"
+  | "before:bump"
+  | "before:git"
+  | "before:git.add"
+  | "after:git.add"
+  | "before:git.commit"
+  | "after:git.commit"
+  | "before:git.tag"
+  | "after:git.tag"
+  | "before:git.push"
+  | "after:git.push"
+  | "after:git";
+
+export type HookContext = ReleaseContext & {
+  logger: ConsolaInstance;
+  cancel(message?: string): never;
 };
+type HookFn = (ctx: HookContext) => any | Promise<any>;
 
-type HookFn<K extends keyof HookContextMap> = (
-  ctx: HookContextMap[K],
-) => any | Promise<any>;
-
-export type Hook<K extends keyof HookContextMap> =
-  | string
-  | HookFn<K>
-  | (string | HookFn<K>)[];
-
-type Hooks = {
-  [K in keyof HookContextMap]?: Hook<K>;
-};
-
-export type AnyHook = Hook<keyof HookContextMap>;
+export type Hook = string | HookFn | (string | HookFn)[];
+export type Hooks = Partial<Record<HookEvent, Hook>>;
 
 /**
  * Options for release-pls.
@@ -409,7 +425,7 @@ export interface UserConfig {
 export type ResolvedConfig = OverrideProperties<
   RequiredDeep<UserConfig>,
   {
-    hooks: Hooks; // 👈 覆盖回“key 可选”
+    hooks: PartialDeep<Hooks>;
     git: OverrideProperties<
       RequiredDeep<UserConfig>["git"],
       {
@@ -417,7 +433,7 @@ export type ResolvedConfig = OverrideProperties<
           | false
           | OverrideProperties<
               RequiredDeep<ChangelogOptions>,
-              { presetOverride?: ChangelogPresetOverride }
+              { config?: ChangelogPresetOverride }
             >;
       }
     >;
@@ -433,11 +449,9 @@ export interface ReleaseContext {
   name?: string;
   tag?: string;
   version?: string;
-
   git?: {
     branch?: string;
   };
-
   repo?: {
     owner?: string;
     repository?: string;
@@ -525,7 +539,11 @@ import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
-import type { UserConfig, ReleaseContext } from "./config/types.ts";
+import type {
+  UserConfig,
+  ReleaseContext,
+  ResolvedConfig,
+} from "./config/types.ts";
 
 import {
   selectVersion,
@@ -539,6 +557,7 @@ import {
   summary,
   genChangelog,
 } from "./steps/index.ts";
+import { hasChangelog, ResolvedConfigWithChangelog } from "./utils/type.ts";
 
 export async function release(config: UserConfig = {}) {
   const resolvedConfig = merge({}, defaultsConf, config);
@@ -559,7 +578,7 @@ export async function release(config: UserConfig = {}) {
   await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (resolvedConfig.changelog) {
+  if (hasChangelog(resolvedConfig)) {
     await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
     await genChangelog(resolvedConfig, ctx);
     await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
@@ -632,8 +651,9 @@ import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
+import { ReleaseContext, ResolvedConfig, UserConfig } from "../config/types.ts";
 import { isUndefined } from "lodash-es";
+import { RequiredDeep } from "type-fest";
 
 export async function collectContext(
   config: ResolvedConfig,
@@ -745,22 +765,18 @@ async function assertAllowedBranch(
 src/steps/genChangelog.ts内容如下：
 
 import { changelog } from "../changelog.ts";
-import { ReleaseContext, UserConfig } from "../config/types.ts";
+import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
-import type { RequiredDeep } from "type-fest";
-
-type EnabledChangelogConfig = RequiredDeep<
-  Omit<UserConfig, "changelog"> & {
-    changelog: Exclude<UserConfig["changelog"], false | undefined>;
-  }
->;
+import { ResolvedConfigWithChangelog } from "../utils/type.ts";
 
 export async function genChangelog(
-  config: EnabledChangelogConfig,
+  config: ResolvedConfigWithChangelog,
   ctx: ReleaseContext,
 ) {
+  // if (config.git.changelog === false) return;
+
   // 格式化args参数
-  config.changelog.args = transformArgs(config.changelog.args, ctx);
+  config.git.changelog.args = transformArgs(config.git.changelog.args, ctx);
 
   await changelog(config, {
     stdio: "ignore",
@@ -1011,23 +1027,20 @@ import { CancelledError } from "../errors.ts";
 import { renderTemplate } from "../utils/index.ts";
 import { logger } from "../utils/index.ts";
 import { ReleaseContext } from "../config.ts";
-import { AnyHook, Hook, HookContextMap } from "../config/types.ts";
+import { Hook } from "../config/types.ts";
 
 function createHookContext(ctx: ReleaseContext) {
   return {
     ...ctx,
 
     logger,
-    cancel(message: string) {
+    cancel(message?: string) {
       throw new CancelledError(message);
     },
   };
 }
 
-export async function runHook<K extends keyof HookContextMap>(
-  hook: Hook<K> | undefined,
-  ctx: ReleaseContext,
-) {
+export async function runHook(hook: Hook | undefined, ctx: ReleaseContext) {
   if (!hook) return;
 
   const hookCtx = createHookContext(ctx);
@@ -1169,5 +1182,22 @@ export function formatDuration(ms: number) {
   const m = Math.floor(s / 60);
   const rest = (s % 60).toFixed(1);
   return `${m}m ${rest}s`;
+}
+
+
+src/utils/type.ts内容如下：
+
+import { ResolvedConfig } from "../config/types.ts";
+
+export type ResolvedConfigWithChangelog = ResolvedConfig & {
+  git: ResolvedConfig["git"] & {
+    changelog: Exclude<ResolvedConfig["git"]["changelog"], false>;
+  };
+};
+
+export function hasChangelog(
+  config: ResolvedConfig,
+): config is ResolvedConfigWithChangelog {
+  return config.git.changelog !== false;
 }
 

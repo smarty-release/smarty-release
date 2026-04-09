@@ -167,11 +167,9 @@ export interface ReleaseContext {
   name?: string;
   tag?: string;
   version?: string;
-
   git?: {
     branch?: string;
   };
-
   repo?: {
     owner?: string;
     repository?: string;
