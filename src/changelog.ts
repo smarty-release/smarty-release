@@ -7,13 +7,14 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parse, stringify } from "smol-toml";
 import { runGitCliff } from "git-cliff";
+import { ResolvedConfig, UserConfig } from "./config/types.ts";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 生成变更日志
-export async function changelog(config = {}, execaOptions = {}) {
-  let { args, template } = merge({}, defaultsConf, config).changelog;
+export async function changelog(config: UserConfig = {}, execaOptions = {}) {
+  let { args, template } = merge({}, defaultsConf, config);
   args = filterArgs(args);
 
   let tmpConfigFile;

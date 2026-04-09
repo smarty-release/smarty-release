@@ -4,7 +4,11 @@ import { logger } from "./utils/index.ts";
 import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
-import type { UserConfig, ReleaseContext } from "./config/types.ts";
+import type {
+  UserConfig,
+  ReleaseContext,
+  ResolvedConfig,
+} from "./config/types.ts";
 
 import {
   selectVersion,
@@ -18,6 +22,7 @@ import {
   summary,
   genChangelog,
 } from "./steps/index.ts";
+import { hasChangelog, ResolvedConfigWithChangelog } from "./utils/type.ts";
 
 export async function release(config: UserConfig = {}) {
   const resolvedConfig = merge({}, defaultsConf, config);
@@ -38,7 +43,7 @@ export async function release(config: UserConfig = {}) {
   await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
 
   // 变更日志
-  if (resolvedConfig.changelog) {
+  if (hasChangelog(resolvedConfig)) {
     await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
     await genChangelog(resolvedConfig, ctx);
     await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);

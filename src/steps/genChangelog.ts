@@ -1,20 +1,16 @@
 import { changelog } from "../changelog.ts";
-import { ReleaseContext, UserConfig } from "../config/types.ts";
+import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
-import type { RequiredDeep } from "type-fest";
-
-type EnabledChangelogConfig = RequiredDeep<
-  Omit<UserConfig, "changelog"> & {
-    changelog: Exclude<UserConfig["changelog"], false | undefined>;
-  }
->;
+import { ResolvedConfigWithChangelog } from "../utils/type.ts";
 
 export async function genChangelog(
-  config: EnabledChangelogConfig,
+  config: ResolvedConfigWithChangelog,
   ctx: ReleaseContext,
 ) {
+  // if (config.git.changelog === false) return;
+
   // 格式化args参数
-  config.changelog.args = transformArgs(config.changelog.args, ctx);
+  config.git.changelog.args = transformArgs(config.git.changelog.args, ctx);
 
   await changelog(config, {
     stdio: "ignore",

@@ -1,5 +1,5 @@
 import type { ReleaseType } from "semver";
-import type { OverrideProperties, RequiredDeep } from "type-fest";
+import type { OverrideProperties, RequiredDeep, PartialDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
 
 export type ChangelogPreset =
@@ -107,6 +107,7 @@ type HookFn = (ctx: HookContext) => any | Promise<any>;
 
 export type Hook = string | HookFn | (string | HookFn)[];
 export type Hooks = Partial<Record<HookEvent, Hook>>;
+
 /**
  * Options for release-pls.
  */
@@ -142,7 +143,7 @@ export interface UserConfig {
 export type ResolvedConfig = OverrideProperties<
   RequiredDeep<UserConfig>,
   {
-    hooks: Hooks;
+    hooks: PartialDeep<Hooks>;
     git: OverrideProperties<
       RequiredDeep<UserConfig>["git"],
       {

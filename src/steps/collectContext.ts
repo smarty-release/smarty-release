@@ -8,8 +8,9 @@ import { execa } from "execa";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
+import { ReleaseContext, ResolvedConfig, UserConfig } from "../config/types.ts";
 import { isUndefined } from "lodash-es";
+import { RequiredDeep } from "type-fest";
 
 export async function collectContext(
   config: ResolvedConfig,
