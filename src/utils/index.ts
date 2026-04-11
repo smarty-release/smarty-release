@@ -2,6 +2,7 @@ import { execa, type Options, ResultPromise } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
+import { access, constants } from "node:fs/promises";
 
 type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
@@ -85,4 +86,13 @@ export function matchBranch(rule: RequireBranch, current: string): boolean {
   }
 
   return false;
+}
+
+export async function fileExists(filePath: string) {
+  try {
+    await access(filePath, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
 }
