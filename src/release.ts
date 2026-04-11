@@ -3,8 +3,14 @@ import { formatDuration, createTimer } from "./utils/timer.ts";
 import { logger } from "./utils/index.ts";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
-import type { UserConfig, ReleaseContext } from "./config/types.ts";
+import type {
+  UserConfig,
+  ReleaseContext,
+  InlineConfig,
+  ResolvedConfig,
+} from "./config/types.ts";
 import { merge } from "./config/merge.ts";
+import { resolveConfig } from "./config/resolve.ts";
 
 import {
   selectVersion,
@@ -20,11 +26,13 @@ import {
 } from "./steps/index.ts";
 import { hasChangelog, ResolvedConfigWithChangelog } from "./utils/type.ts";
 
-export async function release(config: UserConfig = {}) {
-  // 1.合并参数
-  const merged = merge(config, defaultsConf);
+export async function release(inlineConfig: InlineConfig = {}) {
+  const config: ResolvedConfig = resolveConfig(inlineConfig);
 
-  console.log(merged);
+  // // 1.合并参数
+  // const merged = merge(config, defaultsConf);
+
+  // console.log(merged);
 
   // // 2.验证参数合法性，比如用zod，valibot啥的
 

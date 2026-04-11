@@ -1,6 +1,7 @@
 import type { ReleaseType } from "semver";
 import type { OverrideProperties, RequiredDeep, PartialDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
+export type { ReleaseType } from "semver";
 
 export type ChangelogPreset =
   | "azure-devops-keepachangelog"
@@ -138,6 +139,17 @@ export interface UserConfig {
 
   /** 生命周期钩子 */
   hooks?: Hooks;
+
+  cwd?: string;
+}
+
+export interface InlineConfig extends UserConfig {
+  /**
+   * Config file path
+   */
+  config?: string;
+
+  dryRun?: boolean;
 }
 
 export type ResolvedConfig = OverrideProperties<
@@ -164,16 +176,14 @@ export type ResolvedConfig = OverrideProperties<
 export interface ReleaseContext {
   cwd: string;
   env: NodeJS.ProcessEnv;
-  name?: string;
-  tag?: string;
-  version?: string;
-  git?: {
-    branch?: string;
+  name: string;
+  tag: string;
+  version: string;
+  git: {
+    branch: string;
   };
-  repo?: {
+  repo: {
     owner?: string;
     repository?: string;
   };
 }
-
-export type { ReleaseType } from "semver";
