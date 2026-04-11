@@ -121,9 +121,6 @@ try {
 src/commands/changelog.ts内容如下：
 
 import { Command } from "commander";
-import { loadConfig } from "../config/index.ts";
-import { NAME } from "../constants/index.ts";
-import { changelog } from "../changelog.ts";
 
 export function changelogCommand(program: Command) {
   program
@@ -133,12 +130,6 @@ export function changelogCommand(program: Command) {
     .option("-c, --config <path>", "指定配置文件路径")
     .action(async (args) => {
       const opts = program.opts();
-      const config = await loadConfig(NAME, opts.config, {
-        changelog: {
-          args,
-        },
-      });
-      await changelog(config);
     });
 }
 
@@ -146,19 +137,16 @@ export function changelogCommand(program: Command) {
 src/commands/release.ts内容如下：
 
 import { Command } from "commander";
-import { loadConfig } from "../config/index.ts";
-import { NAME } from "../constants/index.ts";
 import { release } from "../release.ts";
+import { InlineConfig } from "../config/types.ts";
 
 export function releaseCommand(program: Command) {
   program
-    .option("--dry-run", "只模拟执行，不做实际发布")
-    .option("-c, --config <path>", "指定配置文件路径")
+    .option("--dry-run", "preview without publishing")
+    .option("-c, --config <path>", "Path to the config file")
     .action(async () => {
-      const opts = program.opts();
-      const config = await loadConfig(NAME, opts.config);
-
-      await release(config);
+      const opts = program.opts<InlineConfig>();
+      await release(opts);
     });
 }
 
@@ -174,8 +162,11 @@ const defaults = {
   git: {
     // 变更日志
     changelog: {
+      // 也支持使用 数组的方式传递
+      // args:["-o","--tag","${version}"],
       args: "-o --tag ${version}",
       template: "github",
+      // 这里默认可以不传递，也可以传递类型 ChangelogPresetOverride
       config: undefined,
     },
     requireBranch: false,
@@ -184,6 +175,7 @@ const defaults = {
   },
 
   hooks: {
+    // hook 支持字符串，数组，函数，数组里的元素也只能是字符串和函数
     "before:init": undefined,
     "before:selectVersion": undefined,
     "after:selectVersion": undefined,
@@ -213,30 +205,24 @@ export default defaults;
 src/config/index.ts内容如下：
 
 import { resolve } from "node:path";
+import { lilconfig } from "lilconfig";
 import type { Loader } from "lilconfig";
-import { lilconfig, LilconfigResult } from "lilconfig";
-import { access, constants } from "node:fs/promises";
-import { merge } from "lodash-es";
+import { fileExists } from "../utils/index.ts";
 
 export * from "./types.ts";
 
 const loadTs: Loader = async (filepath) => {
   const { createJiti } = await import("jiti");
-
   return createJiti(import.meta.url, { interopDefault: true }).import(
     filepath,
-    {
-      default: true,
-    },
+    { default: true },
   );
 };
 
-async function loadConfig<T extends Record<string, any> = Record<string, any>>(
+export async function loadConfig<T>(
   name: string,
-  customPath?: string,
-  overrides?: Partial<T>,
+  configPath?: string,
 ): Promise<T> {
-  let result: LilconfigResult | null;
   const explorer = lilconfig(name, {
     loaders: {
       ".mts": loadTs,
@@ -244,38 +230,48 @@ async function loadConfig<T extends Record<string, any> = Record<string, any>>(
     },
     searchPlaces: [`${name}.config.ts`, `${name}.config.mts`],
   });
-  if (customPath) {
-    // 传递了config选项
-    const filepath = resolve(process.cwd(), customPath);
 
-    // 检查该文件是否存在
-    const exists = await fileExists(filepath);
+  let result;
 
-    if (!exists) {
-      throw new Error(`No ${name} configuration found.`);
+  if (configPath) {
+    const filepath = resolve(process.cwd(), configPath);
+
+    if (!(await fileExists(filepath))) {
+      throw new Error(`Config file not found: ${filepath}`);
     }
     result = await explorer.load(filepath);
   } else {
     result = await explorer.search();
   }
 
-  const config = (result?.config ?? {}) as T;
-
-  if (!overrides) return config;
-
-  return merge({}, config, overrides);
+  return (result?.config ?? {}) as T;
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath, constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
-export { loadConfig };
+src/config/resolve.ts内容如下：
+
+import { NAME } from "../constants/index.ts";
+import { defu } from "../utils/index.ts";
+import { loadConfig } from "./index.ts";
+import type { InlineConfig, ResolvedConfig, UserConfig } from "./types.ts";
+import defaultsConfig from "./defaults.ts";
+
+export async function resolveConfig(
+  inlineConfig: InlineConfig = {},
+): Promise<ResolvedConfig> {
+  // 加载配置
+  const fileConfig = await loadConfig<UserConfig>(NAME, inlineConfig.config);
+
+  const merged = defu(inlineConfig, fileConfig, defaultsConfig);
+
+  // 2.验证参数合法性，比如用zod，valibot啥的
+
+  // 3.参数归一化处理,比如 args还有hooks里面的都最终要转成数组
+
+  // 4.验证仓库本地状态,比如当前仓库是否干净，是否是一个已经初始化的仓库，是否是一个已经提交到远程的库
+
+  return merged;
+}
 
 
 src/config/types.ts内容如下：
@@ -283,6 +279,7 @@ src/config/types.ts内容如下：
 import type { ReleaseType } from "semver";
 import type { OverrideProperties, RequiredDeep, PartialDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
+export type { ReleaseType } from "semver";
 
 export type ChangelogPreset =
   | "azure-devops-keepachangelog"
@@ -420,6 +417,17 @@ export interface UserConfig {
 
   /** 生命周期钩子 */
   hooks?: Hooks;
+
+  cwd?: string;
+}
+
+export interface InlineConfig extends UserConfig {
+  /**
+   * Config file path
+   */
+  config?: string;
+
+  dryRun?: boolean;
 }
 
 export type ResolvedConfig = OverrideProperties<
@@ -446,19 +454,17 @@ export type ResolvedConfig = OverrideProperties<
 export interface ReleaseContext {
   cwd: string;
   env: NodeJS.ProcessEnv;
-  name?: string;
-  tag?: string;
-  version?: string;
-  git?: {
-    branch?: string;
+  name: string;
+  tag: string;
+  version: string;
+  git: {
+    branch: string;
   };
-  repo?: {
+  repo: {
     owner?: string;
     repository?: string;
   };
 }
-
-export type { ReleaseType } from "semver";
 
 
 src/config.ts内容如下：
@@ -536,14 +542,16 @@ src/release.ts内容如下：
 import { runHook } from "./utils/hooks.ts";
 import { formatDuration, createTimer } from "./utils/timer.ts";
 import { logger } from "./utils/index.ts";
-import { merge } from "lodash-es";
 import defaultsConf from "./config/defaults.ts";
 import chalk from "chalk";
 import type {
   UserConfig,
   ReleaseContext,
+  InlineConfig,
   ResolvedConfig,
 } from "./config/types.ts";
+import { merge } from "./config/merge.ts";
+import { resolveConfig } from "./config/resolve.ts";
 
 import {
   selectVersion,
@@ -559,71 +567,75 @@ import {
 } from "./steps/index.ts";
 import { hasChangelog, ResolvedConfigWithChangelog } from "./utils/type.ts";
 
-export async function release(config: UserConfig = {}) {
-  // 1.合并参数
-  const resolvedConfig = merge({}, defaultsConf, config);
+export async function release(inlineConfig: InlineConfig = {}) {
+  const config: ResolvedConfig = resolveConfig(inlineConfig);
 
-  // 2.验证参数合法性，比如用zod，valibot啥的
+  // // 1.合并参数
+  // const merged = merge(config, defaultsConf);
 
-  // 3.参数归一化处理,比如 args还有hooks里面的都最终要转成数组
+  // console.log(merged);
 
-  // 4.验证仓库本地状态,比如当前仓库是否干净，是否是一个已经初始化的仓库，是否是一个已经提交到远程的库
+  // // 2.验证参数合法性，比如用zod，valibot啥的
 
-  const ctx: ReleaseContext = await collectContext(resolvedConfig);
-  const timer = createTimer();
+  // // 3.参数归一化处理,比如 args还有hooks里面的都最终要转成数组
 
-  // 流程开始
-  await runHook(resolvedConfig.hooks?.["before:init"], ctx);
-  // 选择版本
-  await runHook(resolvedConfig.hooks?.["before:selectVersion"], ctx);
-  await selectVersion(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:selectVersion"], ctx);
+  // // 4.验证仓库本地状态,比如当前仓库是否干净，是否是一个已经初始化的仓库，是否是一个已经提交到远程的库
 
-  // 选择tag
-  await runHook(resolvedConfig.hooks?.["before:selectTag"], ctx);
-  await selectTag(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
+  // const ctx: ReleaseContext = await collectContext(resolvedConfig);
+  // const timer = createTimer();
 
-  // 变更日志
-  if (hasChangelog(resolvedConfig)) {
-    await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
-    await genChangelog(resolvedConfig, ctx);
-    await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
-  }
-  // bump
-  await runHook(resolvedConfig.hooks?.["before:bump"], ctx);
-  await bump(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:bump"], ctx);
+  // // 流程开始
+  // await runHook(resolvedConfig.hooks?.["before:init"], ctx);
+  // // 选择版本
+  // await runHook(resolvedConfig.hooks?.["before:selectVersion"], ctx);
+  // await selectVersion(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:selectVersion"], ctx);
 
-  // 总结阶段
-  await summary(resolvedConfig, ctx);
-  // git系列
-  await runHook(resolvedConfig.hooks?.["before:git"], ctx);
+  // // 选择tag
+  // await runHook(resolvedConfig.hooks?.["before:selectTag"], ctx);
+  // await selectTag(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
 
-  // git 具体步骤
-  await runHook(resolvedConfig.hooks?.["before:git.add"], ctx);
-  await gitAdd(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:git.add"], ctx);
+  // // 变更日志
+  // if (hasChangelog(resolvedConfig)) {
+  //   await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
+  //   await genChangelog(resolvedConfig, ctx);
+  //   await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
+  // }
+  // // bump
+  // await runHook(resolvedConfig.hooks?.["before:bump"], ctx);
+  // await bump(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:bump"], ctx);
 
-  await runHook(resolvedConfig.hooks?.["before:git.commit"], ctx);
-  await gitCommit(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:git.commit"], ctx);
+  // // 总结阶段
+  // await summary(resolvedConfig, ctx);
+  // // git系列
+  // await runHook(resolvedConfig.hooks?.["before:git"], ctx);
 
-  await runHook(resolvedConfig.hooks?.["before:git.tag"], ctx);
-  await gitTag(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:git.tag"], ctx);
+  // // git 具体步骤
+  // await runHook(resolvedConfig.hooks?.["before:git.add"], ctx);
+  // await gitAdd(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:git.add"], ctx);
 
-  await runHook(resolvedConfig.hooks?.["before:git.push"], ctx);
-  await gitPush(resolvedConfig, ctx);
-  await runHook(resolvedConfig.hooks?.["after:git.push"], ctx);
+  // await runHook(resolvedConfig.hooks?.["before:git.commit"], ctx);
+  // await gitCommit(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:git.commit"], ctx);
 
-  await runHook(resolvedConfig.hooks?.["after:git"], ctx);
+  // await runHook(resolvedConfig.hooks?.["before:git.tag"], ctx);
+  // await gitTag(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:git.tag"], ctx);
 
-  // 流程走完之后
-  await runHook(resolvedConfig.hooks?.["after:release"], ctx);
+  // await runHook(resolvedConfig.hooks?.["before:git.push"], ctx);
+  // await gitPush(resolvedConfig, ctx);
+  // await runHook(resolvedConfig.hooks?.["after:git.push"], ctx);
 
-  const cost = formatDuration(timer.end());
-  logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+  // await runHook(resolvedConfig.hooks?.["after:git"], ctx);
+
+  // // 流程走完之后
+  // await runHook(resolvedConfig.hooks?.["after:release"], ctx);
+
+  // const cost = formatDuration(timer.end());
+  // logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
 }
 
 
@@ -1080,6 +1092,8 @@ import { execa, type Options, ResultPromise } from "execa";
 import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
+import { access, constants } from "node:fs/promises";
+import { createDefu } from "defu";
 
 type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
@@ -1164,6 +1178,23 @@ export function matchBranch(rule: RequireBranch, current: string): boolean {
 
   return false;
 }
+
+export async function fileExists(filePath: string) {
+  try {
+    await access(filePath, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const defu = createDefu((obj, key, value) => {
+  // 只针对 increments 做覆盖
+  if (key === "increments" && Array.isArray(obj[key]) && Array.isArray(value)) {
+    obj[key] = value; // 直接覆盖
+    return true;
+  }
+});
 
 
 src/utils/timer.ts内容如下：

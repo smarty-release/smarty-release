@@ -7,8 +7,11 @@ const defaults = {
   git: {
     // 变更日志
     changelog: {
+      // 也支持使用 数组的方式传递
+      // args:["-o","--tag","${version}"],
       args: "-o --tag ${version}",
       template: "github",
+      // 这里默认可以不传递，也可以传递类型 ChangelogPresetOverride
       config: undefined,
     },
     requireBranch: false,
@@ -17,6 +20,7 @@ const defaults = {
   },
 
   hooks: {
+    // hook 支持字符串，数组，函数，数组里的元素也只能是字符串和函数
     "before:init": undefined,
     "before:selectVersion": undefined,
     "after:selectVersion": undefined,
