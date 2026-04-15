@@ -3,7 +3,7 @@ import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
 import { access, constants } from "node:fs/promises";
-// import { createDefu } from "defu";
+import { createDefu } from "defu";
 
 type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
@@ -19,6 +19,13 @@ export const logger = createConsola({
   defaults: {
     tag: NAME,
   },
+});
+
+export const defu = createDefu((obj, key, value) => {
+  if (Array.isArray(obj[key]) && Array.isArray(value)) {
+    obj[key] = value; // 直接覆盖
+    return true;
+  }
 });
 
 export async function gitChangeset(cwd: string) {
@@ -126,11 +133,3 @@ export async function getGitCurrentBranch(cwd: string): Promise<string> {
 
   return stdout.trim();
 }
-
-// export const defu = createDefu((obj, key, value) => {
-//   // 只针对 increments 做覆盖
-//   if (key === "increments" && Array.isArray(obj[key]) && Array.isArray(value)) {
-//     obj[key] = value; // 直接覆盖
-//     return true;
-//   }
-// });

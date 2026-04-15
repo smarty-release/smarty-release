@@ -1,6 +1,5 @@
 import { ResolvedConfig } from "../config/types.ts";
 import {
-  getGitCurrentBranch,
   getGitRemoteUrl,
   hasGit,
   isGitClean,
@@ -9,7 +8,6 @@ import {
 import {
   NotGitRepoError,
   GitDirtyError,
-  NotAllowedBranchError,
   GitNotInstalledError,
   GitRemoteNotFoundError,
 } from "../errors.js";

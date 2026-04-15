@@ -1,6 +1,8 @@
 import { NAME } from "../constants/index.ts";
-import merge from "lodash.merge";
+import { defu } from "../utils/index.ts";
 import { loadConfig } from "./index.ts";
+import defaultsConfig from "./defaults.ts";
+import { SetOptional } from "type-fest";
 import type {
   ChangelogOptions,
   InlineConfig,
@@ -11,10 +13,8 @@ import type {
   HookEvent,
   Hook,
 } from "./types.ts";
-import defaultsConfig from "./defaults.ts";
-import { SetOptional } from "type-fest";
 
-type Argss = NonNullable<ChangelogOptions["args"]>;
+type Args = NonNullable<ChangelogOptions["args"]>;
 
 export async function resolveConfig(
   inlineConfig: InlineConfig = {},
@@ -23,7 +23,7 @@ export async function resolveConfig(
   const fileConfig = await loadConfig<UserConfig>(NAME, inlineConfig.config);
 
   // Merge options
-  const merged = merge({}, defaultsConfig, fileConfig, inlineConfig);
+  const merged = defu(inlineConfig, fileConfig, defaultsConfig);
 
   // 验证参数合法性
 
@@ -66,7 +66,7 @@ function normalizeChangelog(
   };
 }
 
-function normalizeArgs(args: Argss): string[] {
+function normalizeArgs(args: Args): string[] {
   if (Array.isArray(args)) return args;
   return args.trim().split(/\s+/);
 }
