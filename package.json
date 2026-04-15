@@ -1,14 +1,13 @@
 {
-  "name": "release-pls",
+  "name": "smarty-release",
   "version": "0.0.0",
   "description": "A lightweight, generic release CLI with steps and hooks.",
   "keywords": [
-    "release-please",
-    "release-pls"
+    "release"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/release-pls/release-pls.git"
+    "url": "https://github.com/smarty-release/smarty-release.git"
   },
   "funding": "https://www.lujiahao.com/sponsor",
   "license": "MIT",
@@ -20,7 +19,7 @@
   },
   "main": "index.js",
   "bin": {
-    "release-pls": "dist/cli.mjs"
+    "smarty-release": "dist/cli.mjs"
   },
   "scripts": {
     "build": "tsdown",
@@ -33,7 +32,6 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^8.4.1",
-    "@npmcli/package-json": "^7.0.5",
     "cac": "^7.0.0",
     "chalk": "^5.6.2",
     "commander": "^14.0.3",
@@ -52,10 +50,8 @@
   "devDependencies": {
     "@types/hosted-git-info": "^3.0.5",
     "@types/node": "^25.5.0",
-    "@types/npmcli__package-json": "^4.0.4",
     "@types/semver": "^7.7.1",
     "defu": "^6.1.7",
-    "fs-extra": "^11.3.4",
     "jiti": "^2.6.1",
     "prettier": "^3.8.3",
     "tsdown": "^0.21.8",

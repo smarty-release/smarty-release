@@ -1,15 +1,14 @@
-import PackageJson from "@npmcli/package-json";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
+import { readPackageJSON, writePackageJSON } from "pkg-types";
 
 export async function bump(config: ResolvedConfig, ctx: ReleaseContext) {
-  const pkgJson = await PackageJson.load(config.cwd);
+  const pkg = await readPackageJSON(config.cwd);
+  pkg.version = ctx.version;
 
-  pkgJson.update({
-    version: ctx.version,
-    publishConfig: {
-      tag: ctx.tag,
-    },
-  });
+  pkg.publishConfig = {
+    ...pkg.publishConfig,
+    tag: ctx.tag,
+  };
 
-  await pkgJson.save();
+  await writePackageJSON(config.cwd, pkg);
 }
