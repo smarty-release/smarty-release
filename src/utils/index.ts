@@ -1,6 +1,6 @@
-import { execa, type Options, ResultPromise } from "execa";
+import { x } from "tinyexec";
 import { createConsola } from "consola";
-import { NAME } from "../constants/index.js";
+import { NAME } from "../constants.ts";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
 import { access, constants } from "node:fs/promises";
 import { createDefu } from "defu";
@@ -9,11 +9,28 @@ type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
 >;
 
-export const run = (
+export async function run(
   bin: string,
-  args: readonly string[] = [],
-  opts: Options = {},
-): ResultPromise => execa(bin, args, { stdio: "pipe", ...opts });
+  args: string[] = [],
+  opts: { cwd?: string; stdio?: "pipe" | "inherit" } = {},
+) {
+  const { stdout, stderr, exitCode } = await x(bin, args, {
+    nodeOptions: { cwd: opts.cwd, stdio: opts.stdio },
+  });
+
+  if (exitCode !== 0) {
+    const err = new Error(stderr || `Command failed: ${bin}`);
+    (err as any).exitCode = exitCode;
+    throw err;
+  }
+
+  if (opts.stdio === "inherit") {
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+  }
+
+  return { stdout, stderr };
+}
 
 export const logger = createConsola({
   defaults: {
@@ -34,7 +51,7 @@ export async function gitChangeset(cwd: string) {
 
 export async function isGitRepo(cwd: string) {
   try {
-    const { stdout } = await execa(
+    const { stdout } = await run(
       "git",
       ["rev-parse", "--is-inside-work-tree"],
       {
@@ -49,7 +66,7 @@ export async function isGitRepo(cwd: string) {
 }
 
 export async function isGitClean(cwd: string) {
-  const { stdout } = await execa("git", ["status", "--porcelain"], {
+  const { stdout } = await run("git", ["status", "--porcelain"], {
     cwd,
   });
 
@@ -63,7 +80,7 @@ export async function workerDirRestore(cwd: string) {
 
 export async function hasGit() {
   try {
-    await execa("git", ["--version"]);
+    await run("git", ["--version"]);
     return true;
   } catch {
     return false;
@@ -72,7 +89,7 @@ export async function hasGit() {
 
 export async function getGitRemoteUrl(cwd: string): Promise<string> {
   try {
-    const { stdout } = await execa("git", ["remote", "get-url", "origin"], {
+    const { stdout } = await run("git", ["remote", "get-url", "origin"], {
       cwd,
     });
     return stdout.trim();
@@ -127,7 +144,7 @@ export async function fileExists(filePath: string) {
 }
 
 export async function getGitCurrentBranch(cwd: string): Promise<string> {
-  const { stdout } = await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+  const { stdout } = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
     cwd,
   });
 

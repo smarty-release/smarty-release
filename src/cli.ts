@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 
-import { Command } from "commander";
-import { releaseCommand } from "./commands/release.ts";
-import { changelogCommand } from "./commands/changelog.ts";
+import { NAME } from "./constants.ts";
 import { logger } from "./utils/index.js";
 import { BaseError } from "./errors.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
-import { NAME } from "./constants/index.ts";
+import { cac } from "cac";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(
@@ -15,32 +13,38 @@ if (lt(process.version, "22.18.0")) {
   );
 }
 
-const program = new Command();
+const cli = cac(NAME);
+cli.help().version(pkg.version);
 
-program
-  .name("release-pls")
-  .description("A lightweight, generic release CLI.")
-  .version(pkg.version);
+cli
+  .command("[root]", "开始运行release流程")
+  .alias("run")
+  .option("--dry-run", "preview without publishing")
+  .option("-c, --config <path>", "Path to the config file")
+  .action((root, options) => {
+    console.log(options);
 
-// 注册命令
-releaseCommand(program);
-changelogCommand(program);
-program.arguments("[cmd]").action((cmd) => {
-  if (!cmd) {
-    // 默认执行 release
-    console.log("qwewq");
-  }
-});
+    console.log("release-start");
+  });
+
+cli
+  .command("changelog", "生成 changelog 并透传 git-cliff 参数", {
+    allowUnknownOptions: true,
+  })
+  .option("-c, --config <path>", "Path to the config file")
+  .action((files, options) => {
+    console.log(files, options);
+  });
+
 try {
-  await program.parseAsync(process.argv);
+  cli.parse(process.argv);
 } catch (err) {
   if (!err) process.exit(0);
 
   if (err instanceof BaseError) {
     logger[err.level](err.message);
   } else {
-    logger.error(err);
+    logger.error(err.message);
   }
-
   process.exit(1);
 }
