@@ -1,50 +1,32 @@
 import { runHook } from "./utils/hooks.ts";
-import { formatDuration, createTimer } from "./utils/timer.ts";
-import { logger } from "./utils/index.ts";
-import defaultsConf from "./config/defaults.ts";
-import chalk from "chalk";
+// import { formatDuration, createTimer } from "./utils/timer.ts";
+// import { logger } from "./utils/index.ts";
+// import defaultsConf from "./config/defaults.ts";
+// import chalk from "chalk";
 import type {
-  UserConfig,
   ReleaseContext,
   InlineConfig,
   ResolvedConfig,
 } from "./config/types.ts";
-import { merge } from "./config/merge.ts";
 import { resolveConfig } from "./config/resolve.ts";
-
-import {
-  selectVersion,
-  selectTag,
-  bump,
-  gitAdd,
-  gitCommit,
-  gitTag,
-  gitPush,
-  collectContext,
-  summary,
-  genChangelog,
-} from "./steps/index.ts";
-import { hasChangelog, ResolvedConfigWithChangelog } from "./utils/type.ts";
+import { createContext } from "./steps/index.ts";
+import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
-  const config: ResolvedConfig = resolveConfig(inlineConfig);
+  // 处理参数
+  const config: ResolvedConfig = await resolveConfig(inlineConfig);
 
-  // // 1.合并参数
-  // const merged = merge(config, defaultsConf);
+  // 验证git仓库状态
+  await checkGitRepoStatus(config);
 
-  // console.log(merged);
+  const ctx: ReleaseContext = await createContext(config);
 
-  // // 2.验证参数合法性，比如用zod，valibot啥的
+  // console.log(ctx);
 
-  // // 3.参数归一化处理,比如 args还有hooks里面的都最终要转成数组
-
-  // // 4.验证仓库本地状态,比如当前仓库是否干净，是否是一个已经初始化的仓库，是否是一个已经提交到远程的库
-
-  // const ctx: ReleaseContext = await collectContext(resolvedConfig);
   // const timer = createTimer();
 
   // // 流程开始
-  // await runHook(resolvedConfig.hooks?.["before:init"], ctx);
+  // await runHook(config.hooks?.["before:init"], ctx);
   // // 选择版本
   // await runHook(resolvedConfig.hooks?.["before:selectVersion"], ctx);
   // await selectVersion(resolvedConfig, ctx);

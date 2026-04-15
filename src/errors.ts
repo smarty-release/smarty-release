@@ -37,6 +37,30 @@ export class GitDirtyError extends BaseError {
   }
 }
 
+export class GitNotInstalledError extends BaseError {
+  constructor(
+    message: string = "Git is not installed or not available in your PATH. Please install Git to continue.",
+  ) {
+    super(message);
+  }
+}
+
+export class GitRemoteNotFoundError extends BaseError {
+  constructor(
+    message: string = "No Git remote repository found (e.g. 'origin'). Please add a remote using 'git remote add origin <url>'.",
+  ) {
+    super(message);
+  }
+}
+
+export class GitRemoteParseError extends BaseError {
+  constructor(
+    message: string = "Failed to parse Git remote URL. Please ensure it is a valid Git repository URL (e.g. GitHub, GitLab, Bitbucket).",
+  ) {
+    super(message);
+  }
+}
+
 export class NotAllowedBranchError extends BaseError {
   constructor(message: string) {
     super(message);

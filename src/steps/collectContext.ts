@@ -1,29 +1,19 @@
-import { checkGitRepoStatus, matchBranch } from "../utils/index.js";
 import {
-  NotGitRepoError,
-  GitDirtyError,
-  NotAllowedBranchError,
-} from "../errors.js";
-import { execa } from "execa";
+  getGitCurrentBranch,
+  getGitRemoteUrl,
+  matchBranch,
+} from "../utils/index.js";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { ReleaseContext, ResolvedConfig, UserConfig } from "../config/types.ts";
-import { isUndefined } from "lodash-es";
-import { RequiredDeep } from "type-fest";
+import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
+import { GitRemoteParseError, NotAllowedBranchError } from "../errors.ts";
+import type { PackageJson } from "pkg-types";
 
-export async function collectContext(
+export async function createContext(
   config: ResolvedConfig,
 ): Promise<ReleaseContext> {
-  const ctx: ReleaseContext = {
-    cwd: process.cwd(),
-    env: process.env,
-  };
-
-  const { isGitRepo, isClean } = await checkGitRepoStatus();
-
-  if (!isGitRepo) throw new NotGitRepoError();
-  if (!isClean) throw new GitDirtyError();
+  const ctx: ReleaseContext = Object.create(null);
 
   await collectGitContext(config, ctx);
   await collectRepoContext(config, ctx);
@@ -33,12 +23,12 @@ export async function collectContext(
 }
 
 async function collectPackageContext(
-  _config: ResolvedConfig,
+  config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
-  const pkgPath = resolve(ctx.cwd!, "package.json");
+  const pkgPath = resolve(config.cwd, "package.json");
 
-  let pkg;
+  let pkg: PackageJson;
   try {
     pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
   } catch (err) {
@@ -59,57 +49,37 @@ async function collectPackageContext(
 }
 
 async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
-  console.log(config);
+  const branch = await getGitCurrentBranch(config.cwd);
 
-  console.log("--------------");
-
-  const { stdout: branch } = await execa("git", [
-    "rev-parse",
-    "--abbrev-ref",
-    "HEAD",
-  ]);
-
-  Object.assign((ctx.git ??= {}), {
-    branch,
-  });
+  ctx.git.branch = branch;
 
   await assertAllowedBranch(config, ctx);
 }
 
 async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
-  let remoteUrl;
-
-  try {
-    const { stdout } = await execa("git", ["remote", "get-url", "origin"]);
-    remoteUrl = stdout.trim();
-  } catch {
-    return;
-  }
+  const remoteUrl = await getGitRemoteUrl(config.cwd);
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
-  if (!info) return; // 这里应该直接报错
-  console.log("----------------------");
-  console.log(info);
-  console.log("----------------------");
 
-  Object.assign((ctx.repo ??= {}), {
-    repository: info.project,
-    owner: info.user,
-  });
+  if (!info) throw new GitRemoteParseError();
+
+  ctx.repo.owner = info.user;
+  ctx.repo.repository = info.project;
 }
 
 async function assertAllowedBranch(
   config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
-  const { requireBranch } = config.git;
+  let { git } = config;
+
+  const { requireBranch } = git;
 
   if (requireBranch === false) return;
 
-  const currentBranch = ctx.git!.branch;
-  if (isUndefined(currentBranch)) {
-    return;
-  }
+  const currentBranch = ctx.git.branch;
+
+  if (currentBranch === undefined) return;
 
   if (!matchBranch(requireBranch, currentBranch)) {
     throw new NotAllowedBranchError(

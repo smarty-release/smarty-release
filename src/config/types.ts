@@ -1,5 +1,5 @@
 import type { ReleaseType } from "semver";
-import type { OverrideProperties, RequiredDeep, PartialDeep } from "type-fest";
+import type { OverrideProperties, RequiredDeep, MergeDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
 export type { ReleaseType } from "semver";
 
@@ -63,7 +63,7 @@ export interface ChangelogPresetOverride {
   git?: ChangelogGitConfig;
 }
 
-type ChangelogOptions = {
+export type ChangelogOptions = {
   args?: string | string[];
   template?: ChangelogPreset;
   config?: ChangelogPresetOverride; // 对 template 的覆盖
@@ -108,6 +108,7 @@ type HookFn = (ctx: HookContext) => any | Promise<any>;
 
 export type Hook = string | HookFn | (string | HookFn)[];
 export type Hooks = Partial<Record<HookEvent, Hook>>;
+export type HooksArray = Partial<Record<HookEvent, (string | HookFn)[]>>;
 
 /**
  * Options for release-pls.
@@ -152,30 +153,30 @@ export interface InlineConfig extends UserConfig {
   dryRun?: boolean;
 }
 
-export type ResolvedConfig = OverrideProperties<
-  RequiredDeep<UserConfig>,
-  {
-    hooks: PartialDeep<Hooks>;
-    git: OverrideProperties<
-      RequiredDeep<UserConfig>["git"],
-      {
+type RequiredInlineConfig = RequiredDeep<InlineConfig>;
+export type ResolvedConfig = MergeDeep<
+  RequiredInlineConfig,
+  OverrideProperties<
+    RequiredInlineConfig,
+    {
+      git: {
         changelog:
           | false
-          | OverrideProperties<
-              RequiredDeep<ChangelogOptions>,
-              { config?: ChangelogPresetOverride }
-            >;
-      }
-    >;
-  }
+          | {
+              args: string[];
+              config?: ChangelogPresetOverride;
+            };
+      };
+      hooks: HooksArray;
+      config?: string;
+    }
+  >
 >;
 
 /**
  * CLI运行时产生的一些配置
  */
 export interface ReleaseContext {
-  cwd: string;
-  env: NodeJS.ProcessEnv;
   name: string;
   tag: string;
   version: string;
@@ -183,7 +184,7 @@ export interface ReleaseContext {
     branch: string;
   };
   repo: {
-    owner?: string;
-    repository?: string;
+    owner: string;
+    repository: string;
   };
 }

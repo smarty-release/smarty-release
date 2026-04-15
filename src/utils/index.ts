@@ -3,7 +3,7 @@ import { createConsola } from "consola";
 import { NAME } from "../constants/index.js";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
 import { access, constants } from "node:fs/promises";
-import { createDefu } from "defu";
+// import { createDefu } from "defu";
 
 type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
@@ -21,36 +21,57 @@ export const logger = createConsola({
   },
 });
 
-export async function gitChangeset(cwd = process.cwd()) {
+export async function gitChangeset(cwd: string) {
   await run("git", ["status", "--porcelain"], { stdio: "inherit", cwd });
 }
 
-/**
- * 判断当前目录是否是一个干净的 git 仓库
- */
-export async function checkGitRepoStatus(cwd = process.cwd()) {
-  // 1. 是否是 git 仓库
+export async function isGitRepo(cwd: string) {
   try {
-    await execa("git", ["rev-parse", "--is-inside-work-tree"], { cwd });
+    const { stdout } = await execa(
+      "git",
+      ["rev-parse", "--is-inside-work-tree"],
+      {
+        cwd,
+      },
+    );
+
+    return stdout.trim() === "true";
   } catch {
-    return {
-      isGitRepo: false,
-      isClean: false,
-    };
+    return false;
   }
-
-  // 2. 是否干净
-  const { stdout } = await execa("git", ["status", "--porcelain"], { cwd });
-
-  return {
-    isGitRepo: true,
-    isClean: stdout.trim().length === 0,
-  };
 }
 
-export async function workerDirRestore(cwd = process.cwd()) {
+export async function isGitClean(cwd: string) {
+  const { stdout } = await execa("git", ["status", "--porcelain"], {
+    cwd,
+  });
+
+  return stdout.trim().length === 0;
+}
+
+export async function workerDirRestore(cwd: string) {
   await run("git", ["restore", "."], { cwd });
   await run("git", ["clean", "-f"], { cwd });
+}
+
+export async function hasGit() {
+  try {
+    await execa("git", ["--version"]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getGitRemoteUrl(cwd: string): Promise<string> {
+  try {
+    const { stdout } = await execa("git", ["remote", "get-url", "origin"], {
+      cwd,
+    });
+    return stdout.trim();
+  } catch {
+    return "";
+  }
 }
 
 export function renderTemplate(template: string, ctx: ReleaseContext): string {
@@ -98,10 +119,18 @@ export async function fileExists(filePath: string) {
   }
 }
 
-export const defu = createDefu((obj, key, value) => {
-  // 只针对 increments 做覆盖
-  if (key === "increments" && Array.isArray(obj[key]) && Array.isArray(value)) {
-    obj[key] = value; // 直接覆盖
-    return true;
-  }
-});
+export async function getGitCurrentBranch(cwd: string): Promise<string> {
+  const { stdout } = await execa("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+    cwd,
+  });
+
+  return stdout.trim();
+}
+
+// export const defu = createDefu((obj, key, value) => {
+//   // 只针对 increments 做覆盖
+//   if (key === "increments" && Array.isArray(obj[key]) && Array.isArray(value)) {
+//     obj[key] = value; // 直接覆盖
+//     return true;
+//   }
+// });

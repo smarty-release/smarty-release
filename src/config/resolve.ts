@@ -1,8 +1,20 @@
 import { NAME } from "../constants/index.ts";
-import { defu } from "../utils/index.ts";
+import merge from "lodash.merge";
 import { loadConfig } from "./index.ts";
-import type { InlineConfig, ResolvedConfig, UserConfig } from "./types.ts";
+import type {
+  ChangelogOptions,
+  InlineConfig,
+  ResolvedConfig,
+  UserConfig,
+  Hooks,
+  HooksArray,
+  HookEvent,
+  Hook,
+} from "./types.ts";
 import defaultsConfig from "./defaults.ts";
+import { SetOptional } from "type-fest";
+
+type Argss = NonNullable<ChangelogOptions["args"]>;
 
 export async function resolveConfig(
   inlineConfig: InlineConfig = {},
@@ -10,13 +22,51 @@ export async function resolveConfig(
   // 加载配置
   const fileConfig = await loadConfig<UserConfig>(NAME, inlineConfig.config);
 
-  const merged = defu(inlineConfig, fileConfig, defaultsConfig);
+  // Merge options
+  const merged = merge({}, defaultsConfig, fileConfig, inlineConfig);
 
-  // 2.验证参数合法性，比如用zod，valibot啥的
+  // 验证参数合法性
 
-  // 3.参数归一化处理,比如 args还有hooks里面的都最终要转成数组
+  // 参数归一化处理
+  const resolved: ResolvedConfig = {
+    ...merged,
+    git: {
+      ...merged.git,
+      changelog: normalizeChangelog(merged.git.changelog),
+    },
+    hooks: normalizeHooks(merged.hooks),
+  };
 
-  // 4.验证仓库本地状态,比如当前仓库是否干净，是否是一个已经初始化的仓库，是否是一个已经提交到远程的库
+  return resolved;
+}
 
-  return merged;
+function normalizeHooks(hooks: Hooks = {}) {
+  const result = {} as HooksArray;
+
+  for (const [event, hook] of Object.entries(hooks) as [HookEvent, Hook][]) {
+    result[event] = normalizeHookValue(hook);
+  }
+
+  return result;
+}
+
+function normalizeHookValue(hook?: Hook) {
+  if (!hook) return [];
+  return Array.isArray(hook) ? hook : [hook];
+}
+
+function normalizeChangelog(
+  changelog: false | SetOptional<Required<ChangelogOptions>, "config">,
+) {
+  if (changelog === false) return false;
+
+  return {
+    ...changelog,
+    args: normalizeArgs(changelog.args),
+  };
+}
+
+function normalizeArgs(args: Argss): string[] {
+  if (Array.isArray(args)) return args;
+  return args.trim().split(/\s+/);
 }
