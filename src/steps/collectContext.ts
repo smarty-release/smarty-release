@@ -42,18 +42,31 @@ async function collectPackageContext(
     throw new Error(`package.json does not contain a valid "version" field.`);
   }
 
-  Object.assign(ctx, {
-    name: pkg.name,
-    version: pkg.version,
-  });
+  if (!pkg.name || typeof pkg.name !== "string") {
+    throw new Error(`package.json does not contain a valid "name" field.`);
+  }
+
+  // 赋值给上下文
+  ctx.name = pkg.name;
+  ctx.version = pkg.version;
 }
 
 async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
+  const { requireBranch } = config.git;
+
+  // 不需要校验分支 -> 直接跳过 git IO
+  if (!requireBranch) return;
+
   const branch = await getGitCurrentBranch(config.cwd);
 
-  ctx.git.branch = branch;
+  if (!matchBranch(requireBranch, branch)) {
+    throw new NotAllowedBranchError(
+      `Release is only allowed on ${String(requireBranch)}, current: ${branch}`,
+    );
+  }
 
-  await assertAllowedBranch(config, ctx);
+  // 赋值给上下文
+  ctx.git.branch = branch;
 }
 
 async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
@@ -63,27 +76,7 @@ async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
 
   if (!info) throw new GitRemoteParseError();
 
+  // 赋值给上下文
   ctx.repo.owner = info.user;
   ctx.repo.repository = info.project;
-}
-
-async function assertAllowedBranch(
-  config: ResolvedConfig,
-  ctx: ReleaseContext,
-) {
-  let { git } = config;
-
-  const { requireBranch } = git;
-
-  if (requireBranch === false) return;
-
-  const currentBranch = ctx.git.branch;
-
-  if (currentBranch === undefined) return;
-
-  if (!matchBranch(requireBranch, currentBranch)) {
-    throw new NotAllowedBranchError(
-      `Release is only allowed on ${String(requireBranch)}, current: ${currentBranch}`,
-    );
-  }
 }

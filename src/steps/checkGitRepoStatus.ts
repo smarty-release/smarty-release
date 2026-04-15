@@ -1,5 +1,6 @@
 import { ResolvedConfig } from "../config/types.ts";
 import {
+  getGitCurrentBranch,
   getGitRemoteUrl,
   hasGit,
   isGitClean,
