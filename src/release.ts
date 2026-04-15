@@ -1,8 +1,7 @@
 import { runHook } from "./utils/hooks.ts";
 // import { formatDuration, createTimer } from "./utils/timer.ts";
 // import { logger } from "./utils/index.ts";
-// import defaultsConf from "./config/defaults.ts";
-// import chalk from "chalk";
+import chalk from "chalk";
 import type {
   ReleaseContext,
   InlineConfig,
@@ -21,7 +20,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
 
   const ctx: ReleaseContext = await createContext(config);
 
-  // console.log(ctx);
+  console.log(ctx);
 
   // const timer = createTimer();
 

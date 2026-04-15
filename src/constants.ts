@@ -1,1 +1,1 @@
-export const NAME = "release-pls";
+export const NAME = "smarty-release";

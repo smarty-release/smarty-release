@@ -1,4 +1,4 @@
-import { NAME } from "../constants/index.ts";
+import { NAME } from "../constants.ts";
 import { defu } from "../utils/index.ts";
 import { loadConfig } from "./index.ts";
 import defaultsConfig from "./defaults.ts";

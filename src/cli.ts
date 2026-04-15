@@ -6,6 +6,7 @@ import { BaseError } from "./errors.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { cac } from "cac";
+import { release } from "./release.ts";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(
@@ -17,12 +18,12 @@ const cli = cac(NAME);
 cli.help().version(pkg.version);
 
 cli
-  .command("[root]", "开始运行release流程")
+  .command("[run]", "开始运行release流程")
   .alias("run")
   .option("--dry-run", "preview without publishing")
   .option("-c, --config <path>", "Path to the config file")
-  .action((root, options) => {
-    console.log("release-start");
+  .action(async (root, options) => {
+    await release(options);
   });
 
 cli
@@ -35,7 +36,8 @@ cli
   });
 
 try {
-  cli.parse(process.argv);
+  cli.parse(process.argv, { run: false });
+  await cli.runMatchedCommand();
 } catch (err: any) {
   if (!err) process.exit(0);
 
