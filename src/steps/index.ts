@@ -1,4 +1,4 @@
-export * from "./collectContext.ts";
+export * from "./createContext.ts";
 export * from "./selectTag.ts";
 export * from "./selectVersion.ts";
 export * from "./bump.ts";
