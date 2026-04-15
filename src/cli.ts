@@ -22,8 +22,6 @@ cli
   .option("--dry-run", "preview without publishing")
   .option("-c, --config <path>", "Path to the config file")
   .action((root, options) => {
-    console.log(options);
-
     console.log("release-start");
   });
 
@@ -38,7 +36,7 @@ cli
 
 try {
   cli.parse(process.argv);
-} catch (err) {
+} catch (err: any) {
   if (!err) process.exit(0);
 
   if (err instanceof BaseError) {
