@@ -65,6 +65,11 @@ async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
     );
   }
 
+  ctx.git = {
+    ...ctx.git,
+    branch,
+  };
+
   // 赋值给上下文
   ctx.git.branch = branch;
 }
@@ -75,8 +80,11 @@ async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
   const info = hostedGitInfo.fromUrl(remoteUrl);
 
   if (!info) throw new GitRemoteParseError();
-
+  const { user, project } = info;
   // 赋值给上下文
-  ctx.repo.owner = info.user;
-  ctx.repo.repository = info.project;
+  ctx.repo = {
+    ...ctx.repo,
+    owner: user,
+    repository: project,
+  };
 }

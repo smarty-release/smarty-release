@@ -44,7 +44,7 @@ try {
   if (err instanceof BaseError) {
     logger[err.level](err.message);
   } else {
-    logger.error(err.message);
+    logger.error(err);
   }
   process.exit(1);
 }
