@@ -1,79 +1,73 @@
-import { runHook } from "./utils/hooks.ts";
-// import { formatDuration, createTimer } from "./utils/timer.ts";
-// import { logger } from "./utils/index.ts";
-import chalk from "chalk";
+import { createHookContext, runHook } from "./utils/hooks.ts";
+import { withTimer } from "./utils/timer.ts";
 import type {
   ReleaseContext,
   InlineConfig,
   ResolvedConfig,
 } from "./config/types.ts";
 import { resolveConfig } from "./config/resolve.ts";
-import { createContext } from "./steps/index.ts";
+import { createContext, selectVersion } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
-  // 处理参数
-  const config: ResolvedConfig = await resolveConfig(inlineConfig);
+  await withTimer("Released", async () => {
+    // 处理参数
+    const config: ResolvedConfig = await resolveConfig(inlineConfig);
 
-  // 验证git仓库状态
-  // await checkGitRepoStatus(config);
+    // 验证git仓库状态
+    await checkGitRepoStatus(config);
 
-  const ctx: ReleaseContext = await createContext(config);
+    const ctx: ReleaseContext = await createContext(config);
+    const hookCtx = createHookContext(ctx);
 
-  console.log(ctx);
+    // 流程开始
+    await runHook(config.hooks?.["before:init"], hookCtx);
+    // 选择版本
+    await runHook(config.hooks?.["before:selectVersion"], hookCtx);
+    await selectVersion(config, ctx);
+    await runHook(config.hooks?.["after:selectVersion"], hookCtx);
 
-  // const timer = createTimer();
+    // // 选择tag
+    // await runHook(config.hooks?.["before:selectTag"], hookCtx);
+    // await selectTag(config, hookCtx);
+    // await runHook(config.hooks?.["after:selectTag"], hookCtx);
 
-  // // 流程开始
-  // await runHook(config.hooks?.["before:init"], ctx);
-  // // 选择版本
-  // await runHook(resolvedConfig.hooks?.["before:selectVersion"], ctx);
-  // await selectVersion(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:selectVersion"], ctx);
+    // // 变更日志
+    // if (hasChangelog(config)) {
+    //   await runHook(config.hooks?.["before:changelog"], hookCtx);
+    //   await genChangelog(config, hookCtx);
+    //   await runHook(config.hooks?.["after:changelog"], hookCtx);
+    // }
+    // // bump
+    // await runHook(config.hooks?.["before:bump"], hookCtx);
+    // await bump(config, hookCtx);
+    // await runHook(config.hooks?.["after:bump"], hookCtx);
 
-  // // 选择tag
-  // await runHook(resolvedConfig.hooks?.["before:selectTag"], ctx);
-  // await selectTag(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:selectTag"], ctx);
+    // // 总结阶段
+    // await summary(config, hookCtx);
+    // // git系列
+    // await runHook(config.hooks?.["before:git"], hookCtx);
 
-  // // 变更日志
-  // if (hasChangelog(resolvedConfig)) {
-  //   await runHook(resolvedConfig.hooks?.["before:changelog"], ctx);
-  //   await genChangelog(resolvedConfig, ctx);
-  //   await runHook(resolvedConfig.hooks?.["after:changelog"], ctx);
-  // }
-  // // bump
-  // await runHook(resolvedConfig.hooks?.["before:bump"], ctx);
-  // await bump(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:bump"], ctx);
+    // // git 具体步骤
+    // await runHook(config.hooks?.["before:git.add"], hookCtx);
+    // await gitAdd(config, hookCtx);
+    // await runHook(config.hooks?.["after:git.add"], hookCtx);
 
-  // // 总结阶段
-  // await summary(resolvedConfig, ctx);
-  // // git系列
-  // await runHook(resolvedConfig.hooks?.["before:git"], ctx);
+    // await runHook(config.hooks?.["before:git.commit"], hookCtx);
+    // await gitCommit(config, hookCtx);
+    // await runHook(config.hooks?.["after:git.commit"], hookCtx);
 
-  // // git 具体步骤
-  // await runHook(resolvedConfig.hooks?.["before:git.add"], ctx);
-  // await gitAdd(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:git.add"], ctx);
+    // await runHook(config.hooks?.["before:git.tag"], hookCtx);
+    // await gitTag(config, hookCtx);
+    // await runHook(config.hooks?.["after:git.tag"], hookCtx);
 
-  // await runHook(resolvedConfig.hooks?.["before:git.commit"], ctx);
-  // await gitCommit(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:git.commit"], ctx);
+    // await runHook(config.hooks?.["before:git.push"], hookCtx);
+    // await gitPush(config, hookCtx);
+    // await runHook(config.hooks?.["after:git.push"], hookCtx);
 
-  // await runHook(resolvedConfig.hooks?.["before:git.tag"], ctx);
-  // await gitTag(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:git.tag"], ctx);
+    // await runHook(config.hooks?.["after:git"], hookCtx);
 
-  // await runHook(resolvedConfig.hooks?.["before:git.push"], ctx);
-  // await gitPush(resolvedConfig, ctx);
-  // await runHook(resolvedConfig.hooks?.["after:git.push"], ctx);
-
-  // await runHook(resolvedConfig.hooks?.["after:git"], ctx);
-
-  // // 流程走完之后
-  // await runHook(resolvedConfig.hooks?.["after:release"], ctx);
-
-  // const cost = formatDuration(timer.end());
-  // logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+    // // 流程走完之后
+    // await runHook(config.hooks?.["after:release"], hookCtx);
+  });
 }

@@ -1,16 +1,20 @@
-export function createTimer() {
-  const start = process.hrtime.bigint();
+import { logger } from "./index.ts";
+import chalk from "chalk";
+export async function withTimer<T>(
+  label: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  const start = performance.now();
 
-  return {
-    end() {
-      const end = process.hrtime.bigint();
-      const diffNs = end - start;
-      return Number(diffNs) / 1e3 / 1e3; // ms
-    },
-  };
+  try {
+    return await fn();
+  } finally {
+    const cost = formatDuration(performance.now() - start);
+    logger.log(chalk.green(`🎉 ${label} successfully! (in ${cost})`));
+  }
 }
 
-export function formatDuration(ms: number) {
+function formatDuration(ms: number) {
   if (ms < 1000) return `${ms.toFixed(0)}ms`;
 
   const s = ms / 1000;

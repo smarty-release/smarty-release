@@ -1,30 +1,27 @@
-import { execa } from "execa";
+import { run } from "./index.ts";
 import { CancelledError } from "../errors.ts";
 import { renderTemplate } from "../utils/index.ts";
 import { logger } from "../utils/index.ts";
 import { ReleaseContext } from "../config.ts";
-import { Hook } from "../config/types.ts";
+import { Hook, HookContext } from "../config/types.ts";
 
-function createHookContext(ctx: ReleaseContext) {
+export function createHookContext(ctx: ReleaseContext) {
   return {
     ...ctx,
-
     logger,
     cancel(message?: string) {
       throw new CancelledError(message);
     },
-  };
+  } as HookContext;
 }
 
-export async function runHook(hook: Hook | undefined, ctx: ReleaseContext) {
-  if (!hook) return;
-
-  const hookCtx = createHookContext(ctx);
+export async function runHook(hook?: Hook, hookCtx?: HookContext) {
+  if (!hook || !hookCtx) return;
 
   // string：shell 命令
   if (typeof hook === "string") {
-    const cmd = renderTemplate(hook, ctx);
-    await execa(cmd, { shell: true, stdio: "inherit" });
+    const cmd = renderTemplate(hook, hookCtx);
+    await run(cmd, [], { shell: true });
     return;
   }
 
@@ -37,7 +34,7 @@ export async function runHook(hook: Hook | undefined, ctx: ReleaseContext) {
   // array
   if (Array.isArray(hook)) {
     for (const h of hook) {
-      await runHook(h, ctx); // 继续传原始 ctx
+      await runHook(h, hookCtx); // 继续传原始 ctx
     }
   }
 }
