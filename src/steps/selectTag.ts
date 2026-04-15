@@ -1,4 +1,4 @@
-import prompts from "prompts";
+// import prompts from "prompts";
 import semver from "semver";
 import { CancelledError } from "../errors.ts";
 import { ReleaseContext, UserConfig } from "../config.ts";

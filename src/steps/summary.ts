@@ -1,5 +1,5 @@
-import prompts from "prompts";
-import { FullUserConfig, ReleaseContext } from "../config/types.ts";
+// import prompts from "prompts";
+import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 
 import { CancelledError } from "../errors.ts";
 import {
@@ -11,7 +11,7 @@ import {
 import { logger } from "../utils/index.js";
 import chalk from "chalk";
 
-export async function summary(config: FullUserConfig, ctx: ReleaseContext) {
+export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   const tagName = renderTemplate(config.git.tagName, ctx);
 
   const entries: [string, string][] = [

@@ -1,12 +1,12 @@
-import prompts from "prompts";
+// import prompts from "prompts";
 import { CancelledError } from "../errors.ts";
 import semver from "semver";
-import { FullUserConfig, ReleaseContext } from "../config/types.ts";
+import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 
 const { inc, valid, prerelease } = semver;
 
 export async function selectVersion(
-  config: FullUserConfig,
+  config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
   let targetVersion;

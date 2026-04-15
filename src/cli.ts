@@ -25,7 +25,12 @@ program
 // 注册命令
 releaseCommand(program);
 changelogCommand(program);
-
+program.arguments("[cmd]").action((cmd) => {
+  if (!cmd) {
+    // 默认执行 release
+    console.log("qwewq");
+  }
+});
 try {
   await program.parseAsync(process.argv);
 } catch (err) {

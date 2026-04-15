@@ -1,5 +1,3 @@
-import { merge } from "lodash-es";
-import defaultsConf from "./config/defaults.ts";
 import { temporaryFile } from "tempy";
 import { writeFile, unlink, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -7,36 +5,50 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parse, stringify } from "smol-toml";
 import { runGitCliff } from "git-cliff";
-import { ResolvedConfig, UserConfig } from "./config/types.ts";
+import {
+  ChangelogPresetOverride,
+  ResolvedConfig,
+  UserConfig,
+} from "./config/types.ts";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 生成变更日志
-export async function changelog(config: UserConfig = {}, execaOptions = {}) {
-  let { args, template } = merge({}, defaultsConf, config);
+export async function changelog(
+  args: string[],
+  template: string,
+  config?: ChangelogPresetOverride,
+) {
   args = filterArgs(args);
-
-  let tmpConfigFile;
-
-  if (shouldUseTemplate(template)) {
-    tmpConfigFile = await resolveTemplateConfig(template);
-    args = [...args, "--config", tmpConfigFile];
-  }
-
-  await runGitCliff(args, execaOptions);
-  tmpConfigFile && (await unlink(tmpConfigFile));
+  // let tmpConfigFile;
+  // if (shouldUseTemplate(template)) {
+  //   tmpConfigFile = await resolveTemplateConfig(template);
+  //   args = [...args, "--config", tmpConfigFile];
+  // }
+  // await runGitCliff(args, execaOptions);
+  // tmpConfigFile && (await unlink(tmpConfigFile));
 }
 
-function filterArgs(input) {
-  return input.filter(
-    (arg, i, arr) =>
-      arg !== "--config" &&
-      arg !== "-c" &&
-      !arg.startsWith("--config=") &&
-      arr[i - 1] !== "--config" &&
-      arr[i - 1] !== "-c",
-  );
+export function filterArgs(args: string[]): string[] {
+  const skip = new Set(["--config", "-c"]);
+
+  const result: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+
+    if (arg.startsWith("--config=")) continue;
+
+    if (skip.has(arg)) {
+      i++;
+      continue;
+    }
+
+    result.push(arg);
+  }
+
+  return result;
 }
 
 function shouldUseTemplate(template) {
