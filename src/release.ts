@@ -1,12 +1,13 @@
 import { createHookContext, runHook } from "./utils/hooks.ts";
 import { withTimer } from "./utils/timer.ts";
-import type {
-  ReleaseContext,
-  InlineConfig,
-  ResolvedConfig,
-} from "./config/types.ts";
+import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
 import { resolveConfig } from "./config/resolve.ts";
-import { createContext, selectVersion } from "./steps/index.ts";
+import {
+  createContext,
+  selectVersion,
+  selectTag,
+  genChangelog,
+} from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
@@ -17,27 +18,27 @@ export async function release(inlineConfig: InlineConfig = {}) {
     // 验证git仓库状态
     // await checkGitRepoStatus(config);
 
-    const ctx: ReleaseContext = await createContext(config);
+    const ctx = await createContext(config);
     const hookCtx = createHookContext(ctx);
 
     // 流程开始
     await runHook(config.hooks?.["before:init"], hookCtx);
     // 选择版本
     await runHook(config.hooks?.["before:selectVersion"], hookCtx);
-    await selectVersion(config, ctx);
+    await selectVersion(config, hookCtx);
     await runHook(config.hooks?.["after:selectVersion"], hookCtx);
 
-    // // 选择tag
-    // await runHook(config.hooks?.["before:selectTag"], hookCtx);
-    // await selectTag(config, hookCtx);
-    // await runHook(config.hooks?.["after:selectTag"], hookCtx);
+    // 选择tag
+    await runHook(config.hooks?.["before:selectTag"], hookCtx);
+    await selectTag(config, hookCtx);
+    await runHook(config.hooks?.["after:selectTag"], hookCtx);
 
-    // // 变更日志
-    // if (hasChangelog(config)) {
-    //   await runHook(config.hooks?.["before:changelog"], hookCtx);
-    //   await genChangelog(config, hookCtx);
-    //   await runHook(config.hooks?.["after:changelog"], hookCtx);
-    // }
+    // 变更日志
+    if (config.git.changelog !== false) {
+      await runHook(config.hooks?.["before:changelog"], hookCtx);
+      await genChangelog(config, hookCtx);
+      await runHook(config.hooks?.["after:changelog"], hookCtx);
+    }
     // // bump
     // await runHook(config.hooks?.["before:bump"], hookCtx);
     // await bump(config, hookCtx);

@@ -1,39 +1,31 @@
-// import prompts from "prompts";
-import semver from "semver";
+import { select } from "@inquirer/prompts";
+import { prerelease } from "semver";
 import { CancelledError } from "../errors.ts";
-import { ReleaseContext, UserConfig } from "../config.ts";
+import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 
-export async function selectTag(config: UserConfig, ctx: ReleaseContext) {
-  const isPrerelease = !!semver.prerelease(ctx.version!);
+export async function selectTag(config: ResolvedConfig, ctx: ReleaseContext) {
+  const isPrerelease = Boolean(prerelease(ctx.version));
 
-  const choices = config
-    .tags!.map((tag) => {
-      const disabled = isPrerelease && tag === "latest";
+  const enabled: any[] = [];
+  const disabled: any[] = [];
 
-      return {
-        tag,
-        disabled,
-        title: tag,
-      };
-    })
-    // 可用的在前，禁用的在后
-    .sort((a, b) => Number(a.disabled) - Number(b.disabled))
-    .map(({ tag, disabled, title }) => ({
-      title,
+  for (const tag of config.tags) {
+    const item = {
+      title: tag,
       value: tag,
-      disabled,
-    }));
+      disabled: isPrerelease && tag === "latest",
+    };
+    (item.disabled ? disabled : enabled).push(item);
+  }
 
-  const { tag } = await prompts({
-    type: "select",
-    name: "tag",
+  const choices = [...enabled, ...disabled];
+
+  const tag = await select({
     message: "What do you want to tag",
-    choices,
+    choices: choices,
   });
 
-  if (!tag) {
-    throw new CancelledError();
-  }
+  if (!tag) throw new CancelledError();
 
   ctx.tag = tag;
 }

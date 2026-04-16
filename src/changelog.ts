@@ -1,36 +1,42 @@
-import { temporaryFile } from "tempy";
-import { writeFile, unlink, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parse, stringify } from "smol-toml";
 import { runGitCliff } from "git-cliff";
+import crypto from "node:crypto";
+
 import {
   ChangelogPresetOverride,
+  NormalizedChangelogOptions,
   ResolvedConfig,
   UserConfig,
 } from "./config/types.ts";
+import { defu } from "./utils/index.ts";
+import { outputFile, remove } from "./utils/fs.ts";
+
+type ExecaOptions = Parameters<typeof runGitCliff>[1];
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 生成变更日志
 export async function changelog(
-  args: string[],
-  template: string,
-  config?: ChangelogPresetOverride,
+  options: NormalizedChangelogOptions,
+  execaOptions: ExecaOptions = {},
 ) {
-  args = filterArgs(args);
-  // let tmpConfigFile;
-  // if (shouldUseTemplate(template)) {
-  //   tmpConfigFile = await resolveTemplateConfig(template);
-  //   args = [...args, "--config", tmpConfigFile];
-  // }
-  // await runGitCliff(args, execaOptions);
-  // tmpConfigFile && (await unlink(tmpConfigFile));
+  let args = filterArgs(options.args);
+
+  let tmpConfigFile = await resolveTemplateConfig(options);
+
+  args = [...args, "--config", tmpConfigFile];
+
+  await runGitCliff(args, execaOptions);
+
+  remove(tmpConfigFile);
 }
 
-export function filterArgs(args: string[]): string[] {
+function filterArgs(args: string[]): string[] {
   const skip = new Set(["--config", "-c"]);
 
   const result: string[] = [];
@@ -51,20 +57,12 @@ export function filterArgs(args: string[]): string[] {
   return result;
 }
 
-function shouldUseTemplate(template) {
-  if (!template) return false;
-  if (Array.isArray(template) && template.length === 0) return false;
-  return true;
-}
-
-async function resolveTemplateConfig(template) {
-  const [templateName, userTplOptions = {}] = template;
-
+async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
   const defaultTplPath = path.resolve(
     __dirname,
     "..",
     "templates",
-    `${templateName}.toml`,
+    `${options.template}.toml`,
   );
 
   if (!existsSync(defaultTplPath)) {
@@ -74,10 +72,16 @@ async function resolveTemplateConfig(template) {
   const defaultTplRaw = await readFile(defaultTplPath, "utf-8");
   const defaultTplConfig = parse(defaultTplRaw);
 
-  const finalConfig = merge({}, defaultTplConfig, userTplOptions);
+  const finalConfig = defu(
+    options.config ? options.config : {},
+    defaultTplConfig,
+  );
 
-  const tmpFile = temporaryFile({ extension: "toml" });
-  await writeFile(tmpFile, stringify(finalConfig));
+  const cacheDir = path.resolve(process.cwd(), "node_modules", ".cache");
+
+  const tmpFile = path.join(cacheDir, `gitcliff-${crypto.randomUUID()}.toml`);
+
+  await outputFile(tmpFile, stringify(finalConfig));
 
   return tmpFile;
 }

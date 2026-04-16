@@ -1,7 +1,11 @@
 import type { ReleaseType } from "semver";
-import type { OverrideProperties, RequiredDeep, MergeDeep } from "type-fest";
+import type {
+  SetRequired,
+  OverrideProperties,
+  RequiredDeep,
+  MergeDeep,
+} from "type-fest";
 import type { ConsolaInstance } from "consola";
-export type { ReleaseType } from "semver";
 
 export type ChangelogPreset =
   | "azure-devops-keepachangelog"
@@ -104,12 +108,15 @@ export type HookContext = ReleaseContext & {
   logger: ConsolaInstance;
   cancel(message?: string): never;
 };
+
 type HookFn = (ctx: HookContext) => any | Promise<any>;
 
-export type HookItems = (string | HookFn)[];
-export type Hook = string | HookFn | HookItems;
-export type Hooks = Partial<Record<HookEvent, Hook>>;
-export type HooksArray = Partial<Record<HookEvent, HookItems>>;
+export type HookItem = string | HookFn;
+export type HookItems = HookItem[];
+
+export type Hook = HookItem | HookItems;
+export type UserHooks = Partial<Record<HookEvent, Hook>>;
+export type Hooks = Partial<Record<HookEvent, HookItems>>;
 
 /**
  * Options for release-pls.
@@ -140,7 +147,7 @@ export interface UserConfig {
   };
 
   /** 生命周期钩子 */
-  hooks?: Hooks;
+  hooks?: UserHooks;
 
   cwd?: string;
 }
@@ -154,6 +161,13 @@ export interface InlineConfig extends UserConfig {
   dryRun?: boolean;
 }
 
+export type NormalizedChangelogOptions = SetRequired<
+  ChangelogOptions,
+  "template"
+> & {
+  args: string[];
+};
+
 type Base = RequiredDeep<InlineConfig>;
 export type ResolvedConfig = MergeDeep<
   Base,
@@ -161,14 +175,9 @@ export type ResolvedConfig = MergeDeep<
     Base,
     {
       git: {
-        changelog:
-          | false
-          | {
-              args: string[];
-              config?: ChangelogPresetOverride;
-            };
+        changelog: false | NormalizedChangelogOptions;
       };
-      hooks: HooksArray;
+      hooks: Hooks;
       config?: string;
     }
   >

@@ -42,7 +42,6 @@
     "pkg-types": "^2.3.0",
     "semver": "^7.7.4",
     "smol-toml": "^1.6.1",
-    "tempy": "^3.2.0",
     "tinyexec": "^1.1.1"
   },
   "devDependencies": {

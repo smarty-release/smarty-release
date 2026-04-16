@@ -36,9 +36,7 @@ export async function selectVersion(
     choices,
   });
 
-  if (!release) {
-    throw new CancelledError();
-  }
+  if (!release) throw new CancelledError();
 
   targetVersion = release;
 
