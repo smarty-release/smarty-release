@@ -5,13 +5,7 @@ import path from "node:path";
 import { parse, stringify } from "smol-toml";
 import { runGitCliff } from "git-cliff";
 import crypto from "node:crypto";
-
-import {
-  ChangelogPresetOverride,
-  NormalizedChangelogOptions,
-  ResolvedConfig,
-  UserConfig,
-} from "./config/types.ts";
+import { NormalizedChangelogOptions } from "./config/types.ts";
 import { defu } from "./utils/index.ts";
 import { outputFile, remove } from "./utils/fs.ts";
 
@@ -25,11 +19,11 @@ export async function changelog(
   options: NormalizedChangelogOptions,
   execaOptions: ExecaOptions = {},
 ) {
-  let args = filterArgs(options.args);
+  const args = filterArgs(options.args);
 
-  let tmpConfigFile = await resolveTemplateConfig(options);
+  const tmpConfigFile = await resolveTemplateConfig(options);
 
-  args = [...args, "--config", tmpConfigFile];
+  args.push(...["--config", tmpConfigFile]);
 
   await runGitCliff(args, execaOptions);
 
@@ -77,9 +71,12 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
     defaultTplConfig,
   );
 
-  const cacheDir = path.resolve(process.cwd(), "node_modules", ".cache");
-
-  const tmpFile = path.join(cacheDir, `gitcliff-${crypto.randomUUID()}.toml`);
+  const tmpFile = path.resolve(
+    process.cwd(),
+    "node_modules",
+    ".cache",
+    `gitcliff-${crypto.randomUUID()}.toml`,
+  );
 
   await outputFile(tmpFile, stringify(finalConfig));
 

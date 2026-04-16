@@ -18,7 +18,7 @@ const cli = cac(NAME);
 cli.help().version(pkg.version);
 
 cli
-  .command("[run]", "开始运行release流程")
+  .command("[run]", "Start release process")
   .alias("run")
   .option("--dry-run", "preview without publishing")
   .option("-c, --config <path>", "Path to the config file")
@@ -27,7 +27,7 @@ cli
   });
 
 cli
-  .command("changelog", "生成 changelog 并透传 git-cliff 参数", {
+  .command("changelog", "Options to pass to git-cliff", {
     allowUnknownOptions: true,
   })
   .option("-c, --config <path>", "Path to the config file")
