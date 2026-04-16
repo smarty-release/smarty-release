@@ -7,10 +7,14 @@ export async function withTimer<T>(
   const start = performance.now();
 
   try {
-    return await fn();
-  } finally {
+    const result = await fn();
+
     const cost = formatDuration(performance.now() - start);
     logger.log(chalk.green(`🎉 ${label} successfully! (in ${cost})`));
+
+    return result;
+  } catch (err) {
+    throw err;
   }
 }
 
