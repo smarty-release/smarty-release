@@ -1,41 +1,37 @@
-// import prompts from "prompts";
+import { select, input } from "@inquirer/prompts";
 import { CancelledError } from "../errors.ts";
-import semver from "semver";
+import { inc, valid, prerelease, gt } from "semver";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
-
-const { inc, valid, prerelease } = semver;
 
 export async function selectVersion(
   config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
   let targetVersion;
-  const currentVersion = ctx.version!;
+  const currentVersion = ctx.version;
   const isPrerelease = prerelease(currentVersion);
 
   // 构建版本选项
   const choices = config.increments.map((type) => ({
-    title: `${type} (${inc(currentVersion, type)})`,
+    name: `${type} (${inc(currentVersion, type)})`,
     value: inc(currentVersion, type),
   }));
 
   // 如果当前是预发布版本，插入 prerelease 选项
   if (isPrerelease) {
     choices.unshift({
-      title: `prerelease (${inc(currentVersion, "prerelease")})`,
+      name: `prerelease (${inc(currentVersion, "prerelease")})`,
       value: inc(currentVersion, "prerelease"),
     });
   }
 
   // custom 始终放最后
   choices.push({
-    title: "custom",
+    name: "custom",
     value: "custom",
   });
 
-  const { release } = await prompts({
-    type: "select",
-    name: "release",
+  const release = await select({
     message: "What do you want to release",
     choices,
   });
@@ -44,36 +40,29 @@ export async function selectVersion(
     throw new CancelledError();
   }
 
+  targetVersion = release;
+
   // 自定义版本号
   if (release === "custom") {
-    const { version } = await prompts({
-      type: "text",
-      name: "version",
+    const customVersion = await input({
       message: "Input custom version",
-      initial: currentVersion,
+      default: currentVersion,
       validate(value) {
         const v = value.trim();
-        if (!valid(v)) return "Invalid semver version";
-        if (!semver.gt(value, currentVersion)) {
-          return "Version must be greater than current version";
+
+        if (!valid(v)) {
+          return "Invalid semver version";
         }
+
+        if (!gt(v, currentVersion)) {
+          return `Version must be greater than current version: ${currentVersion}`;
+        }
+
         return true;
-      },
-      onRender() {
-        if (this.firstRender) {
-          this.value = currentVersion;
-          this.cursor = currentVersion.length;
-        }
       },
     });
 
-    if (!version) {
-      throw new CancelledError();
-    }
-
-    targetVersion = version;
-  } else {
-    targetVersion = release;
+    targetVersion = customVersion;
   }
 
   ctx.version = targetVersion;

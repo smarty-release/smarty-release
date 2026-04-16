@@ -106,9 +106,10 @@ export type HookContext = ReleaseContext & {
 };
 type HookFn = (ctx: HookContext) => any | Promise<any>;
 
-export type Hook = string | HookFn | (string | HookFn)[];
+export type HookItems = (string | HookFn)[];
+export type Hook = string | HookFn | HookItems;
 export type Hooks = Partial<Record<HookEvent, Hook>>;
-export type HooksArray = Partial<Record<HookEvent, (string | HookFn)[]>>;
+export type HooksArray = Partial<Record<HookEvent, HookItems>>;
 
 /**
  * Options for release-pls.
@@ -153,11 +154,11 @@ export interface InlineConfig extends UserConfig {
   dryRun?: boolean;
 }
 
-type RequiredInlineConfig = RequiredDeep<InlineConfig>;
+type Base = RequiredDeep<InlineConfig>;
 export type ResolvedConfig = MergeDeep<
-  RequiredInlineConfig,
+  Base,
   OverrideProperties<
-    RequiredInlineConfig,
+    Base,
     {
       git: {
         changelog:
