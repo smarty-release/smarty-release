@@ -45,13 +45,10 @@ function filterArgs(args: string[]): string[] {
 
   const result: string[] = [];
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!;
-
+  for (const arg of args) {
     if (arg.startsWith("--config=")) continue;
 
     if (skip.has(arg)) {
-      i++;
       continue;
     }
 
