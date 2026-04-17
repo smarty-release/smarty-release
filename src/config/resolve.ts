@@ -9,9 +9,9 @@ import type {
   ResolvedConfig,
   UserConfig,
   Hooks,
-  HooksArray,
   HookEvent,
   Hook,
+  NormalizedHooks,
 } from "./types.ts";
 
 type Args = NonNullable<ChangelogOptions["args"]>;
@@ -41,7 +41,7 @@ export async function resolveConfig(
 }
 
 function normalizeHooks(hooks: Hooks = {}) {
-  const result = {} as HooksArray;
+  const result: NormalizedHooks = {};
 
   for (const [event, hook] of Object.entries(hooks) as [HookEvent, Hook][]) {
     result[event] = normalizeHookValue(hook);

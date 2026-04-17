@@ -113,10 +113,9 @@ type HookFn = (ctx: HookContext) => any | Promise<any>;
 
 export type HookItem = string | HookFn;
 export type HookItems = HookItem[];
-
 export type Hook = HookItem | HookItems;
-export type UserHooks = Partial<Record<HookEvent, Hook>>;
-export type Hooks = Partial<Record<HookEvent, HookItems>>;
+export type Hooks = Partial<Record<HookEvent, Hook>>;
+export type NormalizedHooks = Partial<Record<HookEvent, HookItems>>;
 
 /**
  * Options for release-pls.
@@ -147,7 +146,7 @@ export interface UserConfig {
   };
 
   /** 生命周期钩子 */
-  hooks?: UserHooks;
+  hooks?: Hooks;
 
   cwd?: string;
 }
@@ -168,14 +167,13 @@ export type NormalizedChangelogOptions = SetRequired<
   args: string[];
 };
 
-type Base = RequiredDeep<InlineConfig>;
 export type ResolvedConfig = MergeDeep<
-  Base,
+  RequiredDeep<InlineConfig>,
   {
     git: {
       changelog: false | NormalizedChangelogOptions;
     };
-    hooks: Hooks;
+    hooks: NormalizedHooks;
     config?: string;
   }
 >;

@@ -8,7 +8,11 @@ import {
   selectTag,
   genChangelog,
   bump,
+  gitAdd,
+  gitCommit,
   summary,
+  gitTag,
+  gitPush,
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { hasChangelog } from "./utils/type.ts";
@@ -52,26 +56,26 @@ export async function release(inlineConfig: InlineConfig = {}) {
     // git系列
     await runHook(config.hooks?.["before:git"], hookCtx);
 
-    // // git 具体步骤
-    // await runHook(config.hooks?.["before:git.add"], hookCtx);
-    // await gitAdd(config, hookCtx);
-    // await runHook(config.hooks?.["after:git.add"], hookCtx);
+    // git 具体步骤
+    await runHook(config.hooks?.["before:git.add"], hookCtx);
+    await gitAdd(config, hookCtx);
+    await runHook(config.hooks?.["after:git.add"], hookCtx);
 
-    // await runHook(config.hooks?.["before:git.commit"], hookCtx);
-    // await gitCommit(config, hookCtx);
-    // await runHook(config.hooks?.["after:git.commit"], hookCtx);
+    await runHook(config.hooks?.["before:git.commit"], hookCtx);
+    await gitCommit(config, hookCtx);
+    await runHook(config.hooks?.["after:git.commit"], hookCtx);
 
-    // await runHook(config.hooks?.["before:git.tag"], hookCtx);
-    // await gitTag(config, hookCtx);
-    // await runHook(config.hooks?.["after:git.tag"], hookCtx);
+    await runHook(config.hooks?.["before:git.tag"], hookCtx);
+    await gitTag(config, hookCtx);
+    await runHook(config.hooks?.["after:git.tag"], hookCtx);
 
-    // await runHook(config.hooks?.["before:git.push"], hookCtx);
-    // await gitPush(config, hookCtx);
-    // await runHook(config.hooks?.["after:git.push"], hookCtx);
+    await runHook(config.hooks?.["before:git.push"], hookCtx);
+    await gitPush(config, hookCtx);
+    await runHook(config.hooks?.["after:git.push"], hookCtx);
 
-    // await runHook(config.hooks?.["after:git"], hookCtx);
+    await runHook(config.hooks?.["after:git"], hookCtx);
 
-    // // 流程走完之后
-    // await runHook(config.hooks?.["after:release"], hookCtx);
+    // 流程走完之后
+    await runHook(config.hooks?.["after:release"], hookCtx);
   });
 }
