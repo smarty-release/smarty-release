@@ -29,14 +29,17 @@ export async function changelog(
 
   const bin = await getExePath();
 
-  await x(bin, args, {
-    nodeOptions: {
-      stdio: "inherit",
-      ...spawnOptions,
-    },
-    throwOnError: true,
-  });
-
+  try {
+    await x(bin, args, {
+      nodeOptions: {
+        stdio: "inherit",
+        ...spawnOptions,
+      },
+      throwOnError: true,
+    });
+  } catch (error) {
+    console.log("a");
+  }
   remove(tmpConfigFile);
 }
 

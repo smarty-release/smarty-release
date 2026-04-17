@@ -1,21 +1,15 @@
-import type { LogType } from "consola";
 // 基础错误类
 export class BaseError extends Error {
-  level: LogType;
-
-  constructor(message: string, level: LogType = "error") {
+  constructor(message: string) {
     super(message);
     this.name = this.constructor.name; // 自动使用类名作为 name
-    this.level = level;
-    // 修复 TS 的 Error 继承问题
-    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 
 // 用户取消错误
 export class CancelledError extends BaseError {
   constructor(message: string = "Release cancelled by user") {
-    super(message, "warn");
+    super(message);
   }
 }
 
