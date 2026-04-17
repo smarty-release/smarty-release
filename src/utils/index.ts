@@ -53,7 +53,7 @@ export async function isGitClean(cwd: string) {
   return stdout.trim().length === 0;
 }
 
-export async function workerDirRestore() {
+export async function gitRestore() {
   await x("git", ["restore", "."]);
   await x("git", ["clean", "-f"]);
 }

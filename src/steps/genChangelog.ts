@@ -1,6 +1,6 @@
 import { changelog } from "../changelog.ts";
 import { ReleaseContext } from "../config/types.ts";
-import { renderTemplate, workerDirRestore } from "../utils/index.js";
+import { renderTemplate, gitRestore } from "../utils/index.js";
 import { ResolvedConfigWithChangelog } from "../utils/type.ts";
 import ora from "ora";
 import { confirm } from "@inquirer/prompts";
@@ -16,7 +16,7 @@ export async function genChangelog(
   await changelog(config.git.changelog, {
     stdio: "ignore",
   });
-  spinner.succeed("Changelog has been generated successfully");
+  spinner.stop();
 
   // 再来一个询问,询问用户变更日志是否正常
   const normal = await confirm({
@@ -25,7 +25,7 @@ export async function genChangelog(
   });
 
   if (normal === false) {
-    await workerDirRestore();
+    await gitRestore();
     throw new CancelledError();
   }
 }

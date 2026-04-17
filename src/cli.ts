@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { NAME } from "./constants.ts";
-import { logger, workerDirRestore } from "./utils/index.js";
+import { logger, gitRestore } from "./utils/index.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { cac } from "cac";
@@ -43,8 +43,8 @@ try {
 
   if (err instanceof CancelledError) {
     logger.warn(err.message);
-  } else if ((err as any)?.name === "ExitPromptError") {
-    await workerDirRestore();
+  } else if (err.name === "ExitPromptError") {
+    await gitRestore();
   } else {
     console.log(err);
 

@@ -2,7 +2,7 @@ import { confirm } from "@inquirer/prompts";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 import { CancelledError } from "../errors.ts";
 import {
-  workerDirRestore,
+  gitRestore,
   gitChangeset,
   blank,
   renderTemplate,
@@ -34,12 +34,12 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   blank();
 
   const ok = await confirm({
-    message: "Proceed with release?",
+    message: `Releasing v${ctx.version} on ${ctx.tag}. Confirm?`,
     default: false,
   });
 
   if (ok === false) {
-    await workerDirRestore(); // 恢复所有的变更
+    await gitRestore(); // 恢复所有的变更
     throw new CancelledError();
   }
 }
