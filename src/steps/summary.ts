@@ -1,6 +1,5 @@
-// import prompts from "prompts";
+import { confirm } from "@inquirer/prompts";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
-
 import { CancelledError } from "../errors.ts";
 import {
   workerDirRestore,
@@ -15,11 +14,11 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   const tagName = renderTemplate(config.git.tagName, ctx);
 
   const entries: [string, string][] = [
-    ["Version", ctx.version!],
-    ["Npm Dist Tag", ctx.tag!],
-    ["Owner", ctx!.repo!.owner!],
-    ["Repository", ctx!.repo!.repository!],
-    ["Branch", ctx!.git!.branch!],
+    ["Version", ctx.version],
+    ["Npm Dist Tag", ctx.tag],
+    ["Owner", ctx.repo.owner],
+    ["Repository", ctx.repo.repository],
+    ["Branch", ctx.git.branch],
     ["Git Tag", tagName],
   ];
 
@@ -31,26 +30,31 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   }
   blank();
   logger.log(chalk.cyan("Changeset:"));
-  await gitChangeset();
+  await gitChangeset(config.cwd);
   blank();
 
-  const { ok } = await prompts(
-    {
-      type: "confirm",
-      name: "ok",
-      message: "Proceed with release",
-      initial: false,
-    },
-    {
-      // 当用户按 Ctrl+C 或 ESC 时触发
-      onCancel() {
-        throw new CancelledError();
-      },
-    },
-  );
+  const ok = await confirm({
+    message: "Proceed with release?",
+    default: false,
+  });
+
+  // const { ok } = await prompts(
+  //   {
+  //     type: "confirm",
+  //     name: "ok",
+  //     message: "Proceed with release",
+  //     initial: false,
+  //   },
+  //   {
+  //     // 当用户按 Ctrl+C 或 ESC 时触发
+  //     onCancel() {
+  //       throw new CancelledError();
+  //     },
+  //   },
+  // );
 
   if (ok === false) {
-    await workerDirRestore(); // 恢复所有的变更
+    await workerDirRestore(config.cwd); // 恢复所有的变更
     throw new CancelledError();
   }
 }

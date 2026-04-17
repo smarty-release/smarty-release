@@ -18,5 +18,5 @@ export async function bump(config: ResolvedConfig, ctx: ReleaseContext) {
   // 更新锁文件
   const pm = await detect();
   if (!pm) return;
-  x(pm.agent, ["install"]);
+  await x(pm.agent, ["install"]);
 }

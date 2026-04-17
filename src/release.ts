@@ -8,6 +8,7 @@ import {
   selectTag,
   genChangelog,
   bump,
+  summary,
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { hasChangelog } from "./utils/type.ts";
@@ -46,10 +47,10 @@ export async function release(inlineConfig: InlineConfig = {}) {
     await bump(config, hookCtx);
     await runHook(config.hooks?.["after:bump"], hookCtx);
 
-    // // 总结阶段
-    // await summary(config, hookCtx);
-    // // git系列
-    // await runHook(config.hooks?.["before:git"], hookCtx);
+    // 总结阶段
+    await summary(config, hookCtx);
+    // git系列
+    await runHook(config.hooks?.["before:git"], hookCtx);
 
     // // git 具体步骤
     // await runHook(config.hooks?.["before:git.add"], hookCtx);

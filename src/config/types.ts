@@ -171,16 +171,13 @@ export type NormalizedChangelogOptions = SetRequired<
 type Base = RequiredDeep<InlineConfig>;
 export type ResolvedConfig = MergeDeep<
   Base,
-  OverrideProperties<
-    Base,
-    {
-      git: {
-        changelog: false | NormalizedChangelogOptions;
-      };
-      hooks: Hooks;
-      config?: string;
-    }
-  >
+  {
+    git: {
+      changelog: false | NormalizedChangelogOptions;
+    };
+    hooks: Hooks;
+    config?: string;
+  }
 >;
 
 /**
