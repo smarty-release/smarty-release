@@ -24,6 +24,7 @@ export const defu = createDefu((obj, key, value) => {
 export async function gitChangeset(cwd: string) {
   await x("git", ["status", "--porcelain"], {
     nodeOptions: {
+      stdio: "inherit",
       cwd,
     },
   });
