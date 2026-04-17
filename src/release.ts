@@ -10,6 +10,7 @@ import {
   bump,
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
+import { hasChangelog } from "./utils/type.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
   await withTimer("Released", async () => {
@@ -34,7 +35,8 @@ export async function release(inlineConfig: InlineConfig = {}) {
     await runHook(config.hooks?.["after:selectTag"], hookCtx);
 
     // 变更日志
-    if (config.git.changelog !== false) {
+
+    if (hasChangelog(config)) {
       await runHook(config.hooks?.["before:changelog"], hookCtx);
       await genChangelog(config, hookCtx);
       await runHook(config.hooks?.["after:changelog"], hookCtx);

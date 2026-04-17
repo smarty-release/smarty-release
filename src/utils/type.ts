@@ -1,10 +1,14 @@
-import { ResolvedConfig } from "../config/types.ts";
+import { NormalizedChangelogOptions, ResolvedConfig } from "../config/types.ts";
+import type { MergeDeep } from "type-fest";
 
-export type ResolvedConfigWithChangelog = ResolvedConfig & {
-  git: ResolvedConfig["git"] & {
-    changelog: Exclude<ResolvedConfig["git"]["changelog"], false>;
-  };
-};
+export type ResolvedConfigWithChangelog = MergeDeep<
+  ResolvedConfig,
+  {
+    git: {
+      changelog: NormalizedChangelogOptions;
+    };
+  }
+>;
 
 export function hasChangelog(
   config: ResolvedConfig,
