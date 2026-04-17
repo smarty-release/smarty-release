@@ -2,11 +2,11 @@
 
 import { NAME } from "./constants.ts";
 import { logger } from "./utils/index.js";
-import { BaseError } from "./errors.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { cac } from "cac";
 import { release } from "./release.ts";
+import { clearCache } from "./changelog.ts";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(
@@ -41,10 +41,8 @@ try {
 } catch (err: any) {
   if (!err) process.exit(0);
 
-  if (err instanceof BaseError) {
-    logger[err.level](err.message);
-  } else {
-    logger.error(err);
-  }
+  await clearCache(); // 哪怕失败也清理掉缓存
+  logger.error(String(err.stack || err.message));
+
   process.exit(1);
 }

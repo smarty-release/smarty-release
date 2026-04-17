@@ -10,9 +10,11 @@ import { outputFile, remove } from "./utils/fs.ts";
 import { getExePath } from "./utils/getExePath.ts";
 import { x } from "tinyexec";
 import { SpawnOptions } from "node:child_process";
+import { NAME } from "./constants.ts";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const cacheDir = path.resolve(process.cwd(), "node_modules", `.${NAME}`);
 
 // 生成变更日志
 export async function changelog(
@@ -79,14 +81,13 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
     defaultTplConfig,
   );
 
-  const tmpFile = path.resolve(
-    process.cwd(),
-    "node_modules",
-    ".cache",
-    `gitcliff-${crypto.randomUUID()}.toml`,
-  );
+  const tmpFile = path.join(cacheDir, `gitcliff-${crypto.randomUUID()}.toml`);
 
   await outputFile(tmpFile, stringify(finalConfig));
 
   return tmpFile;
+}
+
+export async function clearCache() {
+  await remove(cacheDir);
 }
