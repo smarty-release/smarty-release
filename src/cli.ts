@@ -6,7 +6,7 @@ import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { cac } from "cac";
 import { release } from "./release.ts";
-import { clearCache } from "./changelog.ts";
+import { CancelledError } from "./errors.ts";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(
@@ -41,8 +41,11 @@ try {
 } catch (err: any) {
   if (!err) process.exit(0);
 
-  await clearCache(); // 哪怕失败也清理掉缓存
-  logger.error(String(err.stack || err.message));
+  if (err instanceof CancelledError) {
+    logger.warn(err.message);
+  } else {
+    logger.error(err.message);
+  }
 
   process.exit(1);
 }

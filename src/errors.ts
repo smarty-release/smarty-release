@@ -6,7 +6,7 @@ export class BaseError extends Error {
   }
 }
 
-// 用户取消错误
+// 用户自己取消错误
 export class CancelledError extends BaseError {
   constructor(message: string = "Release cancelled by user") {
     super(message);
@@ -54,7 +54,13 @@ export class GitRemoteParseError extends BaseError {
     super(message);
   }
 }
-
+export class GenerateChangelogError extends BaseError {
+  constructor(
+    message: string = "Failed to generate changelog. Please check git.changelog.config.remote is correctly configured.",
+  ) {
+    super(message);
+  }
+}
 export class NotAllowedBranchError extends BaseError {
   constructor(message: string) {
     super(message);

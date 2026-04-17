@@ -11,6 +11,7 @@ import { getExePath } from "./utils/getExePath.ts";
 import { x } from "tinyexec";
 import { SpawnOptions } from "node:child_process";
 import { NAME } from "./constants.ts";
+import { GenerateChangelogError } from "./errors.ts";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,9 +39,10 @@ export async function changelog(
       throwOnError: true,
     });
   } catch (error) {
-    console.log("a");
+    throw new GenerateChangelogError();
   }
-  remove(tmpConfigFile);
+
+  await remove(cacheDir);
 }
 
 function filterArgs(args: string[]): string[] {
