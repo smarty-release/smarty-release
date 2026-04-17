@@ -11,7 +11,9 @@ export async function genChangelog(
 
   config.git.changelog.args = renderArgs(config.git.changelog.args, ctx);
 
-  await changelog(config.git.changelog);
+  await changelog(config.git.changelog, {
+    stdio: "ignore",
+  });
 }
 
 function renderArgs(args: string[], ctx: ReleaseContext) {

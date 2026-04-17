@@ -3,13 +3,12 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parse, stringify } from "smol-toml";
-import { runGitCliff } from "git-cliff";
 import crypto from "node:crypto";
 import { NormalizedChangelogOptions } from "./config/types.ts";
-import { defu } from "./utils/index.ts";
+import { defu, run } from "./utils/index.ts";
 import { outputFile, remove } from "./utils/fs.ts";
-
-type ExecaOptions = Parameters<typeof runGitCliff>[1];
+import { getExePath } from "./utils/getExePath.ts";
+import type { SpawnOptions } from "node:child_process";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,7 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 生成变更日志
 export async function changelog(
   options: NormalizedChangelogOptions,
-  execaOptions: ExecaOptions = {},
+  execaOptions: SpawnOptions = {},
 ) {
   const args = filterArgs(options.args);
 
@@ -25,7 +24,13 @@ export async function changelog(
 
   args.push(...["--config", tmpConfigFile]);
 
-  await runGitCliff(args, execaOptions);
+  const bin = await getExePath();
+
+  console.log("------------");
+
+  console.log({ stdio: "inherit", ...execaOptions });
+
+  await run(bin, ["--version"], { stdio: "inherit", ...execaOptions });
 
   remove(tmpConfigFile);
 }

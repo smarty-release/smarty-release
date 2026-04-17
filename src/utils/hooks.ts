@@ -21,7 +21,7 @@ export async function runHook(hook?: HookItems, hookCtx?: HookContext) {
   for (const hookItem of hook) {
     if (typeof hookItem === "string") {
       const cmd = renderTemplate(hookItem, hookCtx);
-      await run(cmd, [], { shell: true, stdio: "inherit" });
+      await run(cmd, [], { shell: true });
     } else {
       await hookItem(hookCtx);
     }

@@ -4,7 +4,7 @@ import { NAME } from "../constants.ts";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
 import { access, constants } from "node:fs/promises";
 import { createDefu } from "defu";
-import { SpawnOptions } from "node:child_process";
+import type { SpawnOptions } from "node:child_process";
 
 type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
@@ -16,7 +16,7 @@ export async function run(
   opts: SpawnOptions = {},
 ) {
   const { stdout, stderr, exitCode } = await x(bin, args, {
-    nodeOptions: opts,
+    nodeOptions: { stdio: "inherit", ...opts },
   });
 
   if (exitCode !== 0) {
@@ -26,6 +26,7 @@ export async function run(
   }
 
   if (opts.stdio === "inherit") {
+    console.log("------------");
     process.stdout.write(stdout);
     process.stderr.write(stderr);
   }
