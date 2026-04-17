@@ -53,17 +53,9 @@ export async function isGitClean(cwd: string) {
   return stdout.trim().length === 0;
 }
 
-export async function workerDirRestore(cwd: string) {
-  await x("git", ["restore", "."], {
-    nodeOptions: {
-      cwd,
-    },
-  });
-  await x("git", ["clean", "-f"], {
-    nodeOptions: {
-      cwd,
-    },
-  });
+export async function workerDirRestore() {
+  await x("git", ["restore", "."]);
+  await x("git", ["clean", "-f"]);
 }
 
 export async function hasGit() {

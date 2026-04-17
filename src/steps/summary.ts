@@ -39,7 +39,7 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   });
 
   if (ok === false) {
-    await workerDirRestore(config.cwd); // 恢复所有的变更
+    await workerDirRestore(); // 恢复所有的变更
     throw new CancelledError();
   }
 }

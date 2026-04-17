@@ -6,6 +6,9 @@ export async function withTimer<T>(
 ): Promise<T> {
   const start = performance.now();
 
+  // 清屏
+  clearScreen();
+
   try {
     const result = await fn();
 
@@ -27,4 +30,10 @@ function formatDuration(ms: number) {
   const m = Math.floor(s / 60);
   const rest = (s % 60).toFixed(1);
   return `${m}m ${rest}s`;
+}
+
+function clearScreen() {
+  if (process.stdout.isTTY) {
+    console.clear();
+  }
 }
