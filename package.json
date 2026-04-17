@@ -32,7 +32,7 @@
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
     "format": "prettier --cache --write .",
-    "release": "node dist/cli.mjs"
+    "release": "pnpm build && node dist/cli.mjs"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.4.1",
@@ -78,5 +78,8 @@
   },
   "engines": {
     "node": "^22.18.0 || >=24.0.0"
+  },
+  "publishConfig": {
+    "tag": "latest"
   }
 }
