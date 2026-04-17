@@ -7,6 +7,7 @@ import {
   selectVersion,
   selectTag,
   genChangelog,
+  bump,
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 
@@ -38,10 +39,10 @@ export async function release(inlineConfig: InlineConfig = {}) {
       await genChangelog(config, hookCtx);
       await runHook(config.hooks?.["after:changelog"], hookCtx);
     }
-    // // bump
-    // await runHook(config.hooks?.["before:bump"], hookCtx);
-    // await bump(config, hookCtx);
-    // await runHook(config.hooks?.["after:bump"], hookCtx);
+    // bump
+    await runHook(config.hooks?.["before:bump"], hookCtx);
+    await bump(config, hookCtx);
+    await runHook(config.hooks?.["after:bump"], hookCtx);
 
     // // 总结阶段
     // await summary(config, hookCtx);
