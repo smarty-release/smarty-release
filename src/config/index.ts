@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { lilconfig } from "lilconfig";
 import type { Loader } from "lilconfig";
-import { fileExists } from "../utils/index.ts";
+import { pathExists } from "../utils/fs.ts";
 
 export * from "./types.ts";
 
@@ -30,7 +30,7 @@ export async function loadConfig<T>(
   if (configPath) {
     const filepath = resolve(process.cwd(), configPath);
 
-    if (!(await fileExists(filepath))) {
+    if (!(await pathExists(filepath))) {
       throw new Error(`Config file not found: ${filepath}`);
     }
     result = await explorer.load(filepath);

@@ -5,10 +5,11 @@ import path from "node:path";
 import { parse, stringify } from "smol-toml";
 import crypto from "node:crypto";
 import { NormalizedChangelogOptions } from "./config/types.ts";
-import { defu, run } from "./utils/index.ts";
+import { defu } from "./utils/index.ts";
 import { outputFile, remove } from "./utils/fs.ts";
 import { getExePath } from "./utils/getExePath.ts";
-import type { SpawnOptions } from "node:child_process";
+import { x } from "tinyexec";
+import { SpawnOptions } from "node:child_process";
 
 // 当前脚本所在目录
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -16,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // 生成变更日志
 export async function changelog(
   options: NormalizedChangelogOptions,
-  execaOptions: SpawnOptions = {},
+  spawnOptions: SpawnOptions = {},
 ) {
   const args = filterArgs(options.args);
 
@@ -26,11 +27,13 @@ export async function changelog(
 
   const bin = await getExePath();
 
-  console.log("------------");
-
-  console.log({ stdio: "inherit", ...execaOptions });
-
-  await run(bin, ["--version"], { stdio: "inherit", ...execaOptions });
+  await x(bin, args, {
+    nodeOptions: {
+      stdio: "inherit",
+      ...spawnOptions,
+    },
+    throwOnError: true,
+  });
 
   remove(tmpConfigFile);
 }

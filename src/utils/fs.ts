@@ -7,3 +7,11 @@ export const outputFile = async (file: string, data: string | Uint8Array) => {
   await fs.mkdir(dirname(file), { recursive: true });
   await fs.writeFile(file, data);
 };
+export const pathExists = async (path: string): Promise<boolean> => {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};

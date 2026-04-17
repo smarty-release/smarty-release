@@ -17,7 +17,6 @@ export async function release(inlineConfig: InlineConfig = {}) {
 
     // 验证git仓库状态
     // await checkGitRepoStatus(config);
-
     const ctx = await createContext(config);
     const hookCtx = createHookContext(ctx);
 

@@ -15,7 +15,7 @@ export async function createContext(
 ): Promise<ReleaseContext> {
   const ctx: ReleaseContext = Object.create(null);
 
-  // await collectGitContext(config, ctx);
+  await collectGitContext(config, ctx);
   await collectRepoContext(config, ctx);
   await collectPackageContext(config, ctx);
 
@@ -76,9 +76,6 @@ async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
 
 async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
   const remoteUrl = await getGitRemoteUrl(config.cwd);
-
-  console.log("11111111111");
-  console.log("remoteUrl:", remoteUrl);
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
 

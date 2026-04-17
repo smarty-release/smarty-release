@@ -1,4 +1,4 @@
-import { run } from "./index.ts";
+import { x } from "tinyexec";
 import { CancelledError } from "../errors.ts";
 import { renderTemplate } from "../utils/index.ts";
 import { logger } from "../utils/index.ts";
@@ -21,7 +21,11 @@ export async function runHook(hook?: HookItems, hookCtx?: HookContext) {
   for (const hookItem of hook) {
     if (typeof hookItem === "string") {
       const cmd = renderTemplate(hookItem, hookCtx);
-      await run(cmd, [], { shell: true });
+      await x(cmd, [], {
+        nodeOptions: {
+          shell: true,
+        },
+      });
     } else {
       await hookItem(hookCtx);
     }

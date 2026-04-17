@@ -2,37 +2,11 @@ import { x } from "tinyexec";
 import { createConsola } from "consola";
 import { NAME } from "../constants.ts";
 import { ReleaseContext, UserConfig } from "../config/types.ts";
-import { access, constants } from "node:fs/promises";
 import { createDefu } from "defu";
-import type { SpawnOptions } from "node:child_process";
 
 type RequireBranch = NonNullable<
   NonNullable<UserConfig["git"]>["requireBranch"]
 >;
-
-export async function run(
-  bin: string,
-  args: string[] = [],
-  opts: SpawnOptions = {},
-) {
-  const { stdout, stderr, exitCode } = await x(bin, args, {
-    nodeOptions: { stdio: "inherit", ...opts },
-  });
-
-  if (exitCode !== 0) {
-    const err = new Error(stderr || `Command failed: ${bin}`);
-    (err as any).exitCode = exitCode;
-    throw err;
-  }
-
-  if (opts.stdio === "inherit") {
-    console.log("------------");
-    process.stdout.write(stdout);
-    process.stderr.write(stderr);
-  }
-
-  return { stdout, stderr };
-}
 
 export const logger = createConsola({
   defaults: {
@@ -48,18 +22,20 @@ export const defu = createDefu((obj, key, value) => {
 });
 
 export async function gitChangeset(cwd: string) {
-  await run("git", ["status", "--porcelain"], { stdio: "inherit", cwd });
+  await x("git", ["status", "--porcelain"], {
+    nodeOptions: {
+      cwd,
+    },
+  });
 }
 
 export async function isGitRepo(cwd: string) {
   try {
-    const { stdout } = await run(
-      "git",
-      ["rev-parse", "--is-inside-work-tree"],
-      {
+    const { stdout } = await x("git", ["rev-parse", "--is-inside-work-tree"], {
+      nodeOptions: {
         cwd,
       },
-    );
+    });
 
     return stdout.trim() === "true";
   } catch {
@@ -68,21 +44,30 @@ export async function isGitRepo(cwd: string) {
 }
 
 export async function isGitClean(cwd: string) {
-  const { stdout } = await run("git", ["status", "--porcelain"], {
-    cwd,
+  const { stdout } = await x("git", ["status", "--porcelain"], {
+    nodeOptions: {
+      cwd,
+    },
   });
-
   return stdout.trim().length === 0;
 }
 
 export async function workerDirRestore(cwd: string) {
-  await run("git", ["restore", "."], { cwd });
-  await run("git", ["clean", "-f"], { cwd });
+  await x("git", ["restore", "."], {
+    nodeOptions: {
+      cwd,
+    },
+  });
+  await x("git", ["clean", "-f"], {
+    nodeOptions: {
+      cwd,
+    },
+  });
 }
 
 export async function hasGit() {
   try {
-    await run("git", ["--version"]);
+    await x("git", ["--version"], { throwOnError: true });
     return true;
   } catch {
     return false;
@@ -91,8 +76,10 @@ export async function hasGit() {
 
 export async function getGitRemoteUrl(cwd: string): Promise<string> {
   try {
-    const { stdout } = await run("git", ["remote", "get-url", "origin"], {
-      cwd,
+    const { stdout } = await x("git", ["remote", "get-url", "origin"], {
+      nodeOptions: {
+        cwd,
+      },
     });
     return stdout.trim();
   } catch {
@@ -136,19 +123,11 @@ export function matchBranch(rule: RequireBranch, current: string): boolean {
   return false;
 }
 
-export async function fileExists(filePath: string) {
-  try {
-    await access(filePath, constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function getGitCurrentBranch(cwd: string): Promise<string> {
-  const { stdout } = await run("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
-    cwd,
+  const { stdout } = await x("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+    nodeOptions: {
+      cwd,
+    },
   });
-
   return stdout.trim();
 }
