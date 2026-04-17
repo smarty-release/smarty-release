@@ -13,6 +13,7 @@ import {
   summary,
   gitTag,
   gitPush,
+  confirmChangelog,
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { hasChangelog } from "./utils/type.ts";
@@ -45,6 +46,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
       await runHook(config.hooks?.["before:changelog"], hookCtx);
       await genChangelog(config, hookCtx);
       await runHook(config.hooks?.["after:changelog"], hookCtx);
+      await confirmChangelog();
     }
     // bump
     await runHook(config.hooks?.["before:bump"], hookCtx);

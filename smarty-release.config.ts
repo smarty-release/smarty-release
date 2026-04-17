@@ -13,6 +13,9 @@ export default defineConfig({
     tagName: "v${version}",
   },
   hooks: {
-    "after:changelog": "prettier --write CHANGELOG.md",
+    "after:changelog": [
+      "echo 'after:changelog'",
+      "prettier --write CHANGELOG.md",
+    ],
   },
 });
