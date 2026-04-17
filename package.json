@@ -27,7 +27,6 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "cnt": "node a.js",
     "typecheck": "tsc",
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
