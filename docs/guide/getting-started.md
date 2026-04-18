@@ -1,65 +1,64 @@
-# smarty-release
+# 快速开始
 
-A lightweight, generic release CLI with steps and hooks.
+## 安装
 
-## 配置
+::: code-group
 
-```js
-export default {
-  increments: ["patch", "minor", "major"],
-  tags: ["latest", "next", "beta", "alpha", "rc"],
+```sh [npm]
+npm install smarty-release -D
+```
 
-  git: {
-    commitMessage: "release: v${version}",
-    tagName: "v${version}",
-    push: true,
+```sh [yarn]
+yarn add smarty-release -D
+```
+
+```sh [pnpm]
+pnpm add smarty-release -D
+```
+
+:::
+
+恭喜你🎉,已经可以使用`smarty-release`了
+
+## 使用 CLI
+
+要验证 `smarty-release` 是否正确安装，请在项目目录中运行以下命令：
+
+```sh
+./node_modules/.bin/smarty-release --version
+```
+
+您还可以通过以下命令查看可用的 CLI 选项和示例：
+
+```sh
+./node_modules/.bin/smarty-release --help
+```
+
+## 在 npm 脚本中使用 CLI
+
+为了简化命令，您可以将其添加到 `package.json` 的脚本中：
+
+```json{5} [package.json]
+{
+  "name": "you-awesome-project",
+  "type": "module",
+  "scripts": {
+    "release": "smarty-release"
   },
-
-  hooks: {
-    "before:selectVersion": ({ version }) => {
-      console.log("Before selecting version");
-    },
-
-    "after:selectVersion": ({ version }) => {
-      console.log("After selecting version", version);
-    },
-
-    "before:bump": "npm run test",
-
-    "after:bump": ({ version, cancel }) => {
-      if (version === "0.2.7") {
-        cancel("User aborted");
-      }
-      console.log("Updated version to", version);
-    },
-  },
-};
+  "devDependencies": {
+    "smarty-release": "^0.0.1"
+  }
+}
 ```
 
-## 子命令
+现在，您可以通过以下命令释放项目：
 
-### changelog
-
-```bash
-npx release-pls changelog --help
-
-# 也支持传入配置文件
-npx release-pls --config configs/my.mjs changelog
+```sh
+npm run release
 ```
 
-## 分支保护
+## 使用配置文件
 
-新增分支保护功能,支持下面几种用法
+虽然可以直接使用 CLI，但对于更加复杂且更个性化的项目，推荐使用配置文件。这可以让您以集中且可复用的方式定义和管理构建设置。
 
-```js
-requireBranch: "main";
-requireBranch: ["main", "release"];
-requireBranch: /^release\/.+$/;
-```
-
-## 🙏 Credits
-
-本项目的灵感来源、依赖于以下项目：
-
-- [release-it](https://github.com/release-it/release-it)
-- [git-cliff](https://github.com/orhun/git-cliff)
+有关更多详细信息，请参阅 [配置文件](../options/config-file.md) 文档。

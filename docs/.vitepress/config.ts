@@ -1,8 +1,12 @@
 import { defineConfig } from "vitepress";
+import {
+  groupIconMdPlugin,
+  groupIconVitePlugin,
+} from "vitepress-plugin-group-icons";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "smarty-release",
+  title: "Smarty-Release",
   base: "/smarty-release/",
   description: "更智能的 `npm publish`",
   head: [
@@ -15,6 +19,14 @@ export default defineConfig({
       },
     ],
   ],
+  markdown: {
+    config(md) {
+      md.use(groupIconMdPlugin);
+    },
+  },
+  vite: {
+    plugins: [groupIconVitePlugin()],
+  },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -32,7 +44,10 @@ export default defineConfig({
         {
           text: "指南",
           base: "/guide/",
-          items: [{ text: "getting-started", link: "getting-started" }],
+          items: [
+            { text: "简介", link: "introduction" },
+            { text: "快速开始", link: "getting-started" },
+          ],
         },
       ],
 
