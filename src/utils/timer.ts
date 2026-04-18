@@ -8,17 +8,11 @@ export async function withTimer<T>(
 
   // 清屏
   clearScreen();
+  const result = await fn();
+  const cost = formatDuration(performance.now() - start);
+  logger.log(chalk.green(`🎉 ${label} successfully! (in ${cost})`));
 
-  try {
-    const result = await fn();
-
-    const cost = formatDuration(performance.now() - start);
-    logger.log(chalk.green(`🎉 ${label} successfully! (in ${cost})`));
-
-    return result;
-  } catch (err) {
-    throw err;
-  }
+  return result;
 }
 
 function formatDuration(ms: number) {

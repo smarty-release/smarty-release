@@ -30,7 +30,8 @@ export async function getExePath() {
     return require.resolve(`git-cliff-${os}-${arch}/bin/git-cliff${extension}`);
   } catch (e) {
     throw new Error(
-      `Couldn't find git-cliff binary inside node_modules for ${os}-${arch} (${e})`,
+      `Couldn't find git-cliff binary inside node_modules for ${os}-${arch}`,
+      { cause: e },
     );
   }
 }

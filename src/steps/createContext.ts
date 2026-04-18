@@ -35,6 +35,7 @@ async function collectPackageContext(
     throw new Error(
       `Cannot read package.json in current directory: ${pkgPath}\n` +
         `Please run this command in a Node.js project root.`,
+      { cause: err },
     );
   }
 

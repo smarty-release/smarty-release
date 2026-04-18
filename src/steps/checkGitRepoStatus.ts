@@ -13,7 +13,7 @@ import {
 } from "../errors.js";
 
 export async function checkGitRepoStatus(config: ResolvedConfig) {
-  let { cwd } = config;
+  const { cwd } = config;
   // 检查是否安装过了git
   const isGitInstalled = await hasGit();
   if (!isGitInstalled) throw new GitNotInstalledError();

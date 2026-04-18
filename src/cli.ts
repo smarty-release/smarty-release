@@ -38,18 +38,17 @@ cli
 try {
   cli.parse(process.argv, { run: false });
   await cli.runMatchedCommand();
-} catch (err: any) {
+} catch (err: unknown) {
   if (!err) process.exit(0);
 
   if (err instanceof CancelledError) {
     logger.warn(err.message);
-  } else if (err.name === "ExitPromptError") {
+  } else if (err instanceof Error && err.name === "ExitPromptError") {
     await gitRestore();
-  } else {
-    console.log(err);
-
+  } else if (err instanceof Error) {
     logger.error(err.message);
+  } else {
+    logger.error("Unknown error");
   }
-
   process.exit(1);
 }

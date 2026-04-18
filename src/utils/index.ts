@@ -84,12 +84,16 @@ export function renderTemplate(template: string, ctx: ReleaseContext): string {
   if (!template || typeof template !== "string") return template;
 
   return template.replace(/\$\{([^}]+)\}/g, (_, expr: string) => {
-    const value = expr.split(".").reduce<any>((acc, key) => acc?.[key], ctx);
+    const value = expr.split(".").reduce<unknown>((acc, key) => {
+      if (acc && typeof acc === "object") {
+        return (acc as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, ctx);
 
     if (value == null) {
       throw new Error(`Template variable "${expr}" is not defined`);
     }
-
     return String(value);
   });
 }

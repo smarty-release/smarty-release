@@ -3,15 +3,21 @@ import { prerelease } from "semver";
 import { CancelledError } from "../errors.ts";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 
+type Choice = {
+  name: string;
+  value: string;
+  disabled?: boolean;
+};
+
 export async function selectTag(config: ResolvedConfig, ctx: ReleaseContext) {
   const isPrerelease = Boolean(prerelease(ctx.version));
 
-  const enabled: any[] = [];
-  const disabled: any[] = [];
+  const enabled: Choice[] = [];
+  const disabled: Choice[] = [];
 
   for (const tag of config.tags) {
     const item = {
-      title: tag,
+      name: tag,
       value: tag,
       disabled: isPrerelease && tag === "latest",
     };

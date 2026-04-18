@@ -57,7 +57,7 @@ export interface ChangelogRemoteConfig {
     repo?: string;
     token?: string;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // presetOverride 配置
@@ -109,7 +109,7 @@ export type HookContext = ReleaseContext & {
   cancel(message?: string): never;
 };
 
-type HookFn = (ctx: HookContext) => any | Promise<any>;
+type HookFn = (ctx: HookContext) => void | Promise<void>;
 
 export type HookItem = string | HookFn;
 export type HookItems = HookItem[];
