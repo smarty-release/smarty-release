@@ -35,12 +35,12 @@
   ],
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc",
     "docs:build": "vitepress build docs",
     "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
     "format": "prettier --cache --write .",
-    "release": "pnpm build && node dist/cli.mjs"
+    "release": "pnpm build && node dist/cli.mjs",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@inquirer/prompts": "^8.4.1",
@@ -84,6 +84,7 @@
     "git-cliff-windows-arm64": "2.12.0",
     "git-cliff-windows-x64": "2.12.0"
   },
+  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": "^22.18.0 || >=24.0.0"
   },
