@@ -11,6 +11,7 @@ const defaults = {
     },
     requireBranch: false,
     commitMessage: "release: v${version}",
+    commitArgs: ["--no-verify", "-s"],
     tagName: "v${version}",
   },
   hooks: {},

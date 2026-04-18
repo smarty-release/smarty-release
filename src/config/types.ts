@@ -142,6 +142,7 @@ export interface UserConfig {
     changelog?: false | ChangelogOptions;
     requireBranch?: string | string[] | RegExp | false;
     commitMessage?: string;
+    commitArgs?: string[];
     tagName?: string;
   };
 

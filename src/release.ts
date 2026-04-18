@@ -60,7 +60,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
 
     // git 具体步骤
     await runHook(config.hooks?.["before:git.add"], hookCtx);
-    await gitAdd(config, hookCtx);
+    await gitAdd();
     await runHook(config.hooks?.["after:git.add"], hookCtx);
 
     await runHook(config.hooks?.["before:git.commit"], hookCtx);
