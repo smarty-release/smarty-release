@@ -1,5 +1,8 @@
 # 🤖 Smarty-Release
 
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-048754?logo=buymeacoffee)](https://www.lujiahao.com/sponsor)
+[![npm](https://img.shields.io/npm/v/smarty-release)](https://www.npmjs.com/package/smarty-release)
+
 更好，更智能的 `npm publish` 替代品。
 
 ## 文档
