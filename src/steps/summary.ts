@@ -24,7 +24,6 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
 
   blank();
   logger.log(chalk.cyan("Summary:"));
-  logger.log(chalk.gray("----------------------------------"));
   for (const [key, val] of entries) {
     logger.log(chalk.green(key.padEnd(20)), chalk.yellow(val));
   }

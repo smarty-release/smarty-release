@@ -12,3 +12,7 @@
 
 - [git-cliff](https://github.com/orhun/git-cliff)
 - [release-it](https://github.com/release-it/release-it)
+
+## License
+
+[MIT](https://github.com/smarty-release/smarty-release/blob/main/LICENSE)
