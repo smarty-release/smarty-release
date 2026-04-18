@@ -17,8 +17,17 @@
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
+  "types": "./dist/index.d.mts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/*.d.mts",
+        "./*"
+      ]
+    }
+  },
   "bin": {
-    "smarty-release": "dist/cli.mjs"
+    "smarty-release": "./dist/cli.mjs"
   },
   "files": [
     "dist",
