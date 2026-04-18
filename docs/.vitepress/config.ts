@@ -2,9 +2,9 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "release-pls",
-  base: "/release-pls/",
-  description: "一个简单的发布工具",
+  title: "smarty-release",
+  base: "/smarty-release/",
+  description: "更智能的 `npm publish`",
   head: [
     ["link", { rel: "icon", href: "favicon.svg", type: "image/svg+xml" }],
     [
@@ -18,9 +18,9 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: "Guide", link: "/guide/getting-started", activeMatch: "/guide/" },
+      { text: "指南", link: "/guide/getting-started", activeMatch: "/guide/" },
       {
-        text: "Reference",
+        text: "参考",
         link: "/reference/cli",
         activeMatch: "/reference/",
       },
@@ -30,7 +30,7 @@ export default defineConfig({
     sidebar: {
       "/guide/": [
         {
-          text: "Guide",
+          text: "指南",
           base: "/guide/",
           items: [{ text: "getting-started", link: "getting-started" }],
         },
@@ -38,14 +38,17 @@ export default defineConfig({
 
       "/reference/": [
         {
-          text: "Reference",
+          text: "参考",
           base: "/reference/",
           items: [{ text: "CLI", link: "cli" }],
         },
       ],
     },
     socialLinks: [
-      { icon: "github", link: "https://github.com/release-pls/release-pls" },
+      {
+        icon: "github",
+        link: "https://github.com/smarty-release/smarty-release",
+      },
     ],
   },
 });

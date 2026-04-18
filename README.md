@@ -1,61 +1,10 @@
-# release-pls
+# Smarty-Release 🚀
 
-A lightweight, generic release CLI with steps and hooks.
+更好，更智能的 `npm publish` 替代品
 
-## 配置
+## 文档
 
-```js
-export default {
-  increments: ["patch", "minor", "major"],
-  tags: ["latest", "next", "beta", "alpha", "rc"],
-
-  git: {
-    commitMessage: "release: v${version}",
-    tagName: "v${version}",
-    push: true,
-  },
-
-  hooks: {
-    "before:selectVersion": ({ version }) => {
-      console.log("Before selecting version");
-    },
-
-    "after:selectVersion": ({ version }) => {
-      console.log("After selecting version", version);
-    },
-
-    "before:bump": "npm run test",
-
-    "after:bump": ({ version, cancel }) => {
-      if (version === "0.2.7") {
-        cancel("User aborted");
-      }
-      console.log("Updated version to", version);
-    },
-  },
-};
-```
-
-## 子命令
-
-### changelog
-
-```bash
-npx release-pls changelog --help
-
-# 也支持传入配置文件
-npx release-pls --config configs/my.mjs changelog
-```
-
-## 分支保护
-
-新增分支保护功能,支持下面几种用法
-
-```js
-requireBranch: "main";
-requireBranch: ["main", "release"];
-requireBranch: /^release\/.+$/;
-```
+[Docs](https://ajiho.github.io/quicktab)
 
 ## 🙏 Credits
 

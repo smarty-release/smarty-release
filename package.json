@@ -1,7 +1,7 @@
 {
   "name": "smarty-release",
   "version": "0.0.0",
-  "description": "A smart and lightweight CLI for automating project releases.",
+  "description": "A smarter `npm publish`",
   "keywords": [
     "release"
   ],
