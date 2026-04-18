@@ -4,7 +4,12 @@ on:
   push:
     branches:
       - main
-  #允许从页面手动运行此工作流
+    paths:
+      - "docs/**"
+      - ".github/workflows/**"
+    tags:
+      - "v*"
+
   workflow_dispatch:
 
 permissions:
@@ -25,19 +30,19 @@ jobs:
         with:
           fetch-depth: 0 # 如果未启用lastUpdated，则不需要
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: npm
+          node-version: 24
+          cache: pnpm
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: 安装Node依赖
-        run: npm install
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: 文档打包
-        run: npm run docs:build
+      - name: Build with VitePress
+        run: pnpm docs:build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
