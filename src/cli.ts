@@ -43,12 +43,11 @@ try {
 
   if (err instanceof CancelledError) {
     logger.warn(err.message);
-  } else if (err instanceof Error && err.name === "ExitPromptError") {
-    await gitRestore();
   } else if (err instanceof Error) {
     logger.error(err.message);
   } else {
-    logger.error("Unknown error");
+    logger.error(`Unknown error`, err);
   }
+  await gitRestore(); //任何失败都要直接恢复
   process.exit(1);
 }
