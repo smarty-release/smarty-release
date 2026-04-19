@@ -1,4 +1,3 @@
-import { createHookContext, runHook } from "./utils/hooks.ts";
 import { withTimer } from "./utils/timer.ts";
 import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
 import { resolveConfig } from "./config/resolve.ts";
@@ -14,20 +13,21 @@ import {
   gitTag,
   gitPush,
   confirmChangelog,
+  createHookContext,
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { hasChangelog } from "./utils/type.ts";
+import { runHook } from "./utils/index.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
-  await withTimer("Released", async () => {
-    // 处理参数
-    const config: ResolvedConfig = await resolveConfig(inlineConfig);
+  // 处理参数
+  const config: ResolvedConfig = await resolveConfig(inlineConfig);
+  // 验证git仓库状态
+  await checkGitRepoStatus(config);
+  const ctx = await createContext(config);
+  const hookCtx = createHookContext(ctx);
 
-    // 验证git仓库状态
-    // await checkGitRepoStatus(config);
-    const ctx = await createContext(config);
-    const hookCtx = createHookContext(ctx);
-
+  await withTimer(async () => {
     // 流程开始
     await runHook(config.hooks?.["before:init"], hookCtx);
     // 选择版本

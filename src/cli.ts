@@ -48,6 +48,6 @@ try {
   } else {
     logger.error(`Unknown error`, err);
   }
-  await gitRestore(); //任何失败都要直接恢复
+
   process.exit(1);
 }

@@ -1,13 +1,22 @@
 import {
   getGitCurrentBranch,
   getGitRemoteUrl,
+  logger,
   matchBranch,
 } from "../utils/index.js";
 import hostedGitInfo from "hosted-git-info";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
-import { GitRemoteParseError, NotAllowedBranchError } from "../errors.ts";
+import {
+  HookContext,
+  ReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+import {
+  CancelledError,
+  GitRemoteParseError,
+  NotAllowedBranchError,
+} from "../errors.ts";
 import type { PackageJson } from "pkg-types";
 
 export async function createContext(
@@ -20,6 +29,16 @@ export async function createContext(
   await collectPackageContext(config, ctx);
 
   return ctx;
+}
+
+export function createHookContext(ctx: ReleaseContext) {
+  return {
+    ...ctx,
+    logger,
+    cancel(message?: string) {
+      throw new CancelledError(message);
+    },
+  } as HookContext;
 }
 
 async function collectPackageContext(

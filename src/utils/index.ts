@@ -1,7 +1,12 @@
 import { x } from "tinyexec";
 import { createConsola } from "consola";
 import { NAME } from "../constants.ts";
-import { ReleaseContext, UserConfig } from "../config/types.ts";
+import {
+  HookContext,
+  HookItems,
+  ReleaseContext,
+  UserConfig,
+} from "../config/types.ts";
 import { createDefu } from "defu";
 
 type RequireBranch = NonNullable<
@@ -127,4 +132,22 @@ export async function getGitCurrentBranch(cwd: string): Promise<string> {
     },
   });
   return stdout.trim();
+}
+
+export async function runHook(hook?: HookItems, hookCtx?: HookContext) {
+  if (!hook || !hookCtx) return;
+
+  for (const hookItem of hook) {
+    if (typeof hookItem === "string") {
+      const cmd = renderTemplate(hookItem, hookCtx);
+      await x(cmd, [], {
+        nodeOptions: {
+          shell: true,
+          stdio: "inherit",
+        },
+      });
+    } else {
+      await hookItem(hookCtx);
+    }
+  }
 }
