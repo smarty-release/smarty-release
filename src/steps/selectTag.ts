@@ -1,6 +1,5 @@
 import { select } from "@inquirer/prompts";
 import { prerelease } from "semver";
-import { CancelledError } from "../errors.ts";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 
 type Choice = {
@@ -31,7 +30,7 @@ export async function selectTag(config: ResolvedConfig, ctx: ReleaseContext) {
     choices: choices,
   });
 
-  if (!tag) throw new CancelledError();
+  if (!tag) ctx.cancel();
 
   ctx.tag = tag;
 }

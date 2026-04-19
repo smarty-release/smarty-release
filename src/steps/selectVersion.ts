@@ -1,5 +1,4 @@
 import { select, input } from "@inquirer/prompts";
-import { CancelledError } from "../errors.ts";
 import { inc, valid, prerelease, gt } from "semver";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
 
@@ -36,7 +35,7 @@ export async function selectVersion(
     choices,
   });
 
-  if (!release) throw new CancelledError();
+  if (!release) ctx.cancel();
 
   targetVersion = release;
 

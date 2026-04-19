@@ -1,12 +1,7 @@
 import { x } from "tinyexec";
 import { createConsola } from "consola";
 import { NAME } from "../constants.ts";
-import {
-  HookContext,
-  HookItems,
-  ReleaseContext,
-  UserConfig,
-} from "../config/types.ts";
+import { HookItems, ReleaseContext, UserConfig } from "../config/types.ts";
 import { createDefu } from "defu";
 
 type RequireBranch = NonNullable<
@@ -134,7 +129,7 @@ export async function getGitCurrentBranch(cwd: string): Promise<string> {
   return stdout.trim();
 }
 
-export async function runHook(hook?: HookItems, hookCtx?: HookContext) {
+export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
   if (!hook || !hookCtx) return;
 
   for (const hookItem of hook) {

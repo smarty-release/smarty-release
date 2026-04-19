@@ -104,12 +104,25 @@ export type HookEvent =
   | "after:git.push"
   | "after:git";
 
-export type HookContext = ReleaseContext & {
+/**
+ * CLI运行时产生的一些配置
+ */
+export interface ReleaseContext {
+  name: string;
+  tag: string;
+  version: string;
+  git: {
+    branch: string;
+  };
+  repo: {
+    owner: string;
+    repository: string;
+  };
   logger: ConsolaInstance;
   cancel(message?: string): never;
-};
+}
 
-type HookFn = (ctx: HookContext) => void | Promise<void>;
+type HookFn = (ctx: ReleaseContext) => void | Promise<void>;
 
 export type HookItem = string | HookFn;
 export type HookItems = HookItem[];
@@ -178,19 +191,3 @@ export type ResolvedConfig = MergeDeep<
     config?: string;
   }
 >;
-
-/**
- * CLI运行时产生的一些配置
- */
-export interface ReleaseContext {
-  name: string;
-  tag: string;
-  version: string;
-  git: {
-    branch: string;
-  };
-  repo: {
-    owner: string;
-    repository: string;
-  };
-}
