@@ -24,6 +24,7 @@ export async function runHook(hook?: HookItems, hookCtx?: HookContext) {
       await x(cmd, [], {
         nodeOptions: {
           shell: true,
+          stdio: "inherit",
         },
       });
     } else {
