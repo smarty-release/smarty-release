@@ -1,4 +1,4 @@
-import { changelog } from "../changelog.ts";
+import { runGitCliff } from "../git-cliff.ts";
 import { ReleaseContext } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
 import { ResolvedConfigWithChangelog } from "../utils/type.ts";
@@ -11,7 +11,7 @@ export async function genChangelog(
   config.git.changelog.args = renderArgs(config.git.changelog.args, ctx);
 
   const spinner = ora("Generating changelog, please wait…").start();
-  await changelog(config.git.changelog, {
+  await runGitCliff(config.git.changelog, {
     stdio: "ignore",
   });
   spinner.stop();

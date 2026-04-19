@@ -1,19 +1,14 @@
-import { gitRestore, logger } from "./index.ts";
+import { logger } from "./index.ts";
 import chalk from "chalk";
 export async function withTimer<T>(fn: () => Promise<T>): Promise<T> {
   const start = performance.now();
   clearScreen();
-
-  try {
-    const result = await fn();
-    const cost = formatDuration(performance.now() - start);
-    logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
-    return result;
-  } catch (error) {
-    await gitRestore();
-    throw error;
-  }
+  const result = await fn();
+  const cost = formatDuration(performance.now() - start);
+  logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+  return result;
 }
+
 function formatDuration(ms: number) {
   if (ms < 1000) return `${ms.toFixed(0)}ms`;
 

@@ -1,5 +1,6 @@
 import {
   getGitCurrentBranch,
+  getGitHead,
   getGitRemoteUrl,
   logger,
   matchBranch,
@@ -23,6 +24,9 @@ export async function createContext(
   await collectGitContext(config, ctx);
   await collectRepoContext(config, ctx);
   await collectPackageContext(config, ctx);
+
+  const initialRef = await getGitHead();
+  ctx._initialRef = initialRef;
 
   return {
     ...ctx,

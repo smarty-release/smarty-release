@@ -1,3 +1,4 @@
+// 该代码文件来自:git-cliff
 import { arch as getArch, platform as getPlatform } from "os";
 import { createRequire } from "node:module";
 

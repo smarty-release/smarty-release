@@ -1,12 +1,23 @@
 import { x } from "tinyexec";
 import { createConsola } from "consola";
 import { NAME } from "../constants.ts";
-import { HookItems, ReleaseContext, UserConfig } from "../config/types.ts";
+import { HookItems, ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import { createDefu } from "defu";
+import type { Get } from "type-fest";
 
-type RequireBranch = NonNullable<
-  NonNullable<UserConfig["git"]>["requireBranch"]
->;
+type RequireBranch = Get<ResolvedConfig, "git.requireBranch">;
+
+export async function getGitHead(): Promise<string> {
+  const { stdout } = await x("git", ["rev-parse", "HEAD"], {
+    throwOnError: true,
+  });
+  return stdout.trim();
+}
+
+export async function gitReset(ctx: ReleaseContext) {
+  if (!ctx._initialRef) return;
+  await x("git", ["reset", "--hard", ctx._initialRef]);
+}
 
 export const logger = createConsola({
   defaults: {
@@ -51,11 +62,6 @@ export async function isGitClean(cwd: string) {
     },
   });
   return stdout.trim().length === 0;
-}
-
-export async function gitRestore() {
-  await x("git", ["restore", "."]);
-  await x("git", ["clean", "-f"]);
 }
 
 export async function hasGit() {

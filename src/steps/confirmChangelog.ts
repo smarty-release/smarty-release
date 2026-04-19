@@ -1,5 +1,5 @@
 import { confirm } from "@inquirer/prompts";
-import { gitRestore } from "../utils/index.js";
+import { gitReset } from "../utils/index.js";
 import { ReleaseContext } from "../config/types.ts";
 
 export async function confirmChangelog(ctx: ReleaseContext) {
@@ -9,7 +9,7 @@ export async function confirmChangelog(ctx: ReleaseContext) {
     default: true,
   });
   if (normal === false) {
-    await gitRestore();
+    await gitReset(ctx);
     ctx.cancel();
   }
 }

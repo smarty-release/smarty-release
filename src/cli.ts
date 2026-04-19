@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { NAME } from "./constants.ts";
-import { logger, gitRestore } from "./utils/index.js";
+import { logger } from "./utils/index.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { cac } from "cac";

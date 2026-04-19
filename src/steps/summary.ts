@@ -1,8 +1,7 @@
 import { confirm } from "@inquirer/prompts";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
-import { CancelledError } from "../errors.ts";
 import {
-  gitRestore,
+  gitReset,
   gitChangeset,
   blank,
   renderTemplate,
@@ -38,7 +37,7 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   });
 
   if (ok === false) {
-    await gitRestore(); // 恢复所有的变更
-    throw new CancelledError();
+    await gitReset(ctx);
+    ctx.cancel();
   }
 }

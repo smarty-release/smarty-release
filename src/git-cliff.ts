@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cacheDir = path.resolve(process.cwd(), "node_modules", `.${NAME}`);
 
 // 生成变更日志
-export async function changelog(
+export async function runGitCliff(
   options: NormalizedChangelogOptions,
   spawnOptions: SpawnOptions = {},
 ) {
@@ -88,8 +88,4 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
   await outputFile(tmpFile, stringify(finalConfig));
 
   return tmpFile;
-}
-
-export async function clearCache() {
-  await remove(cacheDir);
 }

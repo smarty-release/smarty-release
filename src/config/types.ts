@@ -1,10 +1,5 @@
 import type { ReleaseType } from "semver";
-import type {
-  SetRequired,
-  OverrideProperties,
-  RequiredDeep,
-  MergeDeep,
-} from "type-fest";
+import type { SetRequired, RequiredDeep, MergeDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
 
 export type ChangelogPreset =
@@ -120,6 +115,7 @@ export interface ReleaseContext {
   };
   logger: ConsolaInstance;
   cancel(message?: string): never;
+  _initialRef: string;
 }
 
 type HookFn = (ctx: ReleaseContext) => void | Promise<void>;

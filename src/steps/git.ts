@@ -29,7 +29,7 @@ export async function gitPush(config: ResolvedConfig, ctx: ReleaseContext) {
   await x("git", ["push"], {
     throwOnError: true,
   });
-  await x("git", ["push", "origin", `refs/tags/${tagName}`], {
+  await x("git", ["push", "aaa", `refs/tags/${tagName}`], {
     throwOnError: true,
   });
   spinner.stop();
