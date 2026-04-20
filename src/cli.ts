@@ -7,6 +7,8 @@ import lt from "semver/functions/lt.js";
 import { cac } from "cac";
 import { release } from "./release.ts";
 import { CancelledError } from "./errors.ts";
+import { changelog } from "./changelog.ts";
+import { InlineConfig } from "./config/types.ts";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(
@@ -22,7 +24,7 @@ cli
   .alias("run")
   .option("--dry-run", "preview without publishing")
   .option("-c, --config <path>", "Path to the config file")
-  .action(async (root, options) => {
+  .action(async (root, options: InlineConfig) => {
     await release(options);
   });
 
@@ -31,8 +33,13 @@ cli
     allowUnknownOptions: true,
   })
   .option("-c, --config <path>", "Path to the config file")
-  .action((files, options) => {
-    console.log(files, options);
+  .action(async (files, options) => {
+    const raw = cli.rawArgs;
+    const idx = raw.findIndex((arg) => arg === "changelog");
+    // 取后面的参数（排除 node / script）
+    const args = idx !== -1 ? raw.slice(idx + 1) : [];
+
+    await changelog(args);
   });
 
 try {
