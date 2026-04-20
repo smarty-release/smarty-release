@@ -34,6 +34,7 @@
     "templates"
   ],
   "scripts": {
+    "cnt": "node dumpSrcFiles.js",
     "lint": "eslint .",
     "lint:fix": "pnpm lint --fix",
     "build": "tsdown",

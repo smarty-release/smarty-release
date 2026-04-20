@@ -66,3 +66,21 @@ export class NotAllowedBranchError extends BaseError {
     super(message);
   }
 }
+
+export class GitPushError extends BaseError {
+  constructor(message = "Failed to push to remote repository.") {
+    super(message);
+  }
+}
+
+export class GitCommitError extends BaseError {
+  constructor(message = "Failed to commit changes.") {
+    super(message);
+  }
+}
+
+export class GitTagError extends BaseError {
+  constructor(message = "Failed to create git tag.") {
+    super(message);
+  }
+}
