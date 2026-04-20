@@ -2,7 +2,7 @@ import type { ReleaseType } from "semver";
 import type { SetRequired, RequiredDeep, MergeDeep } from "type-fest";
 import type { ConsolaInstance } from "consola";
 
-export type ChangelogPreset =
+export type ChangelogTemplate =
   | "azure-devops-keepachangelog"
   | "cocogitto"
   | "detailed"
@@ -55,8 +55,7 @@ export interface ChangelogRemoteConfig {
   [key: string]: unknown;
 }
 
-// presetOverride 配置
-export interface ChangelogPresetOverride {
+export interface ChangelogConfig {
   remote?: ChangelogRemoteConfig;
   changelog?: ChangelogContentConfig;
   git?: ChangelogGitConfig;
@@ -64,8 +63,8 @@ export interface ChangelogPresetOverride {
 
 export type ChangelogOptions = {
   args?: string | string[];
-  template?: ChangelogPreset;
-  config?: ChangelogPresetOverride; // 对 template 的覆盖
+  template?: ChangelogTemplate;
+  config?: ChangelogConfig;
 };
 
 type DistTag =
