@@ -36,13 +36,9 @@ export async function gitPush(config: ResolvedConfig, ctx: ReleaseContext) {
   const spinner = ora("Releasing…").start();
 
   try {
-    await x(
-      "git",
-      ["push", "origind", "HEAD", `refs/tags/${ctx.git.tagName}`],
-      {
-        throwOnError: true,
-      },
-    );
+    await x("git", ["push", "origin", "HEAD", `refs/tags/${ctx.git.tagName}`], {
+      throwOnError: true,
+    });
     spinner.stop();
   } catch (error) {
     throw new GitPushError();
