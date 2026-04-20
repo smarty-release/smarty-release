@@ -1,21 +1,23 @@
+import { arch as getArch, platform as getPlatform } from "os";
+import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import path from "node:path";
+import { dirname, resolve, join } from "node:path";
 import { parse, stringify } from "smol-toml";
-import crypto from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { NormalizedChangelogOptions } from "./config/types.ts";
 import { defu } from "./utils/index.ts";
 import { outputFile, remove } from "./utils/fs.ts";
-import { getExePath } from "./utils/getExePath.ts";
 import { x } from "tinyexec";
 import { SpawnOptions } from "node:child_process";
 import { NAME } from "./constants.ts";
 import { GenerateChangelogError } from "./errors.ts";
 
+const require = createRequire(import.meta.url);
 // 当前脚本所在目录
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const cacheDir = path.resolve(process.cwd(), "node_modules", `.${NAME}`);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const cacheDir = resolve(process.cwd(), "node_modules", `.${NAME}`);
 
 // 生成变更日志
 export async function runGitCliff(
@@ -64,7 +66,7 @@ function filterArgs(args: string[]): string[] {
 }
 
 async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
-  const defaultTplPath = path.resolve(
+  const defaultTplPath = resolve(
     __dirname,
     "..",
     "templates",
@@ -83,9 +85,31 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
     defaultTplConfig,
   );
 
-  const tmpFile = path.join(cacheDir, `gitcliff-${crypto.randomUUID()}.toml`);
+  const tmpFile = join(cacheDir, `gitcliff-${randomUUID()}.toml`);
 
   await outputFile(tmpFile, stringify(finalConfig));
 
   return tmpFile;
+}
+
+async function getExePath() {
+  const platform = getPlatform();
+  const arch = getArch();
+
+  let os = platform as string;
+  let extension = "";
+
+  if (platform === "win32" || platform === "cygwin") {
+    os = "windows";
+    extension = ".exe";
+  }
+
+  try {
+    return require.resolve(`git-cliff-${os}-${arch}/bin/git-cliff${extension}`);
+  } catch (e) {
+    throw new Error(
+      `Couldn't find git-cliff binary inside node_modules for ${os}-${arch}`,
+      { cause: e },
+    );
+  }
 }
