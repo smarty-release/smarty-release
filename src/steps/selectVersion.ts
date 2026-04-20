@@ -1,6 +1,7 @@
 import { select, input } from "@inquirer/prompts";
 import { inc, valid, prerelease, gt } from "semver";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
+import { renderTemplate } from "../utils/index.ts";
 
 export async function selectVersion(
   config: ResolvedConfig,
@@ -63,4 +64,9 @@ export async function selectVersion(
   }
 
   ctx.version = targetVersion;
+  const tagName = renderTemplate(config.git.tagName, ctx);
+  ctx.git = {
+    ...ctx.git,
+    tagName,
+  };
 }

@@ -23,10 +23,8 @@ export async function gitCommit(config: ResolvedConfig, ctx: ReleaseContext) {
 }
 
 export async function gitTag(config: ResolvedConfig, ctx: ReleaseContext) {
-  const tagName = renderTemplate(config.git.tagName, ctx);
-
   try {
-    await x("git", ["tag", tagName], {
+    await x("git", ["tag", "-f", ctx.git.tagName], {
       throwOnError: true,
     });
   } catch (error) {
@@ -36,12 +34,15 @@ export async function gitTag(config: ResolvedConfig, ctx: ReleaseContext) {
 
 export async function gitPush(config: ResolvedConfig, ctx: ReleaseContext) {
   const spinner = ora("Releasing…").start();
-  const tagName = renderTemplate(config.git.tagName, ctx);
 
   try {
-    await x("git", ["push", "origind", "HEAD", `refs/tags/${tagName}`], {
-      throwOnError: true,
-    });
+    await x(
+      "git",
+      ["push", "origind", "HEAD", `refs/tags/${ctx.git.tagName}`],
+      {
+        throwOnError: true,
+      },
+    );
     spinner.stop();
   } catch (error) {
     throw new GitPushError();

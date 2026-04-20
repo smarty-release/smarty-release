@@ -107,6 +107,7 @@ export interface ReleaseContext {
   version: string;
   git: {
     branch: string;
+    tagName: string;
   };
   repo: {
     owner: string;
