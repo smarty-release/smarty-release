@@ -26,10 +26,7 @@ export async function gitTag(config: ResolvedConfig, ctx: ReleaseContext) {
 export async function gitPush(config: ResolvedConfig, ctx: ReleaseContext) {
   const spinner = ora("Releasing…").start();
   const tagName = renderTemplate(config.git.tagName, ctx);
-  await x("git", ["push"], {
-    throwOnError: true,
-  });
-  await x("git", ["push", "aaa", `refs/tags/${tagName}`], {
+  await x("git", ["push", "origin", "HEAD", `refs/tags/${tagName}`], {
     throwOnError: true,
   });
   spinner.stop();
