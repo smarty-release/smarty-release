@@ -2,7 +2,7 @@ import { NAME } from "../constants.ts";
 import { defu } from "../utils/index.ts";
 import { loadConfig } from "./index.ts";
 import defaultsConfig from "./defaults.ts";
-import { SetOptional } from "type-fest";
+import { parse } from "valibot";
 import type {
   ChangelogOptions,
   InlineConfig,
@@ -13,6 +13,7 @@ import type {
   Hook,
   NormalizedHooks,
 } from "./types.ts";
+import { inlineConfigSchema } from "./inlineConfigSchema.ts";
 
 type Args = NonNullable<ChangelogOptions["args"]>;
 
@@ -26,6 +27,7 @@ export async function resolveConfig(
   const merged = defu(inlineConfig, fileConfig, defaultsConfig);
 
   // 验证参数合法性
+  parse(inlineConfigSchema, merged);
 
   // 参数归一化处理
   const resolved: ResolvedConfig = {
@@ -55,9 +57,7 @@ function normalizeHookValue(hook?: Hook) {
   return Array.isArray(hook) ? hook : [hook];
 }
 
-function normalizeChangelog(
-  changelog: false | SetOptional<Required<ChangelogOptions>, "config">,
-) {
+function normalizeChangelog(changelog: false | Required<ChangelogOptions>) {
   if (changelog === false) return false;
 
   return {

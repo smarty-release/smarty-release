@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: write # to be able to publish a GitHub release
-  id-token: write # to enable use of OIDC for npm provenance
+  id-token: write # Required for OIDC
 
 jobs:
   build:
@@ -18,24 +18,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v5
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
-          cache: "npm"
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install
 
       - name: Build
-        run: npm run build
+        run: pnpm build
 
       - name: Publish to npm
-        run: npm publish
+        run: pnpm publish --no-git-checks
 
       - name: Generate a changelog
-        run: npx release-pls changelog -o --latest
+        run: pnpm exec smarty-release changelog -vv -o --latest
         env:
           GITHUB_REPO: ${{ github.repository }}
 
