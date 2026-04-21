@@ -30,7 +30,7 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
-      { text: "指南", link: "/guide/getting-started", activeMatch: "/guide/" },
+      { text: "指南", link: "/guide/", activeMatch: "/guide/" },
       {
         text: "参考",
         link: "/reference/cli",
@@ -45,8 +45,9 @@ export default defineConfig({
           text: "指南",
           base: "/guide/",
           items: [
-            { text: "简介", link: "introduction" },
+            { text: "简介", link: "/" },
             { text: "快速开始", link: "getting-started" },
+            { text: "配置文件", link: "config-file" },
           ],
         },
       ],
