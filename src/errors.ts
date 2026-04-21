@@ -55,9 +55,7 @@ export class GitRemoteParseError extends BaseError {
   }
 }
 export class GenerateChangelogError extends BaseError {
-  constructor(
-    message: string = "Failed to generate changelog. Please check git.changelog.config.remote is correctly configured.",
-  ) {
+  constructor(message: string = "Failed to generate changelog.") {
     super(message);
   }
 }
