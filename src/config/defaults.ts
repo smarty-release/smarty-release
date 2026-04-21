@@ -8,6 +8,11 @@ const defaults = {
     changelog: {
       args: "-o --tag ${version}",
       template: "github",
+      config: {
+        git: {
+          commit_parsers: [{ message: "^release", skip: true }],
+        },
+      },
     },
     requireBranch: false,
     commitMessage: "release: v${version}",

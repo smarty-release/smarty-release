@@ -79,10 +79,9 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
   const defaultTplRaw = await readFile(defaultTplPath, "utf-8");
   const defaultTplConfig = parse(defaultTplRaw);
 
-  const finalConfig = defu(
-    options.config ? options.config : {},
-    defaultTplConfig,
-  );
+  const finalConfig = defu(options.config, defaultTplConfig);
+
+  // console.dir(finalConfig, { depth: null });
 
   const tmpFile = join(cacheDir, `gitcliff-${randomUUID()}.toml`);
 

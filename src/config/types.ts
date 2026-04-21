@@ -1,5 +1,10 @@
 import type { ReleaseType } from "semver";
-import type { SetRequired, RequiredDeep, MergeDeep } from "type-fest";
+import type {
+  SetRequired,
+  RequiredDeep,
+  MergeDeep,
+  OverrideProperties,
+} from "type-fest";
 import type { ConsolaInstance } from "consola";
 
 export type ChangelogTemplate =
@@ -19,17 +24,37 @@ export type ChangelogTemplate =
 // commit parser 类型
 export interface CommitParser {
   message: string; // 正则或匹配字符串
-  group: string; // commit 分类
+  group?: string; // 分组
+  default_scope?: string;
+  skip?: boolean; //默认跳过
+}
+
+export interface LinkParsers {
+  pattern?: string;
+  href?: string;
 }
 
 // git 配置
 export interface ChangelogGitConfig {
   conventional_commits?: boolean;
   filter_unconventional?: boolean;
+  require_conventional?: boolean;
+  split_commits?: boolean;
   commit_parsers?: CommitParser[];
+  protect_breaking_commits?: false;
   filter_commits?: boolean;
+  fail_on_unmatched_commit?: boolean;
+  tag_pattern?: string;
+  skip_tags?: string;
+  ignore_tags?: string;
   topo_order?: boolean;
+  topo_order_commits?: boolean;
   sort_commits?: "oldest" | "newest";
+  link_parsers?: LinkParsers[];
+  limit_commits?: number;
+  recurse_submodules?: boolean;
+  include_paths?: string[];
+  exclude_paths?: string[];
 }
 
 // changelog 内容配置
@@ -38,6 +63,15 @@ export interface ChangelogContentConfig {
   body?: string;
   footer?: string;
   trim?: boolean;
+}
+
+export interface ChangelogBumpConfig {
+  bump_type?: string;
+  features_always_bump_minor?: boolean;
+  breaking_always_bump_major?: boolean;
+  custom_major_increment_regex?: string;
+  custom_minor_increment_regex?: string;
+  initial_tag?: string;
 }
 
 // remote 配置
@@ -56,9 +90,10 @@ export interface ChangelogRemoteConfig {
 }
 
 export interface ChangelogConfig {
-  remote?: ChangelogRemoteConfig;
+  bump?: ChangelogBumpConfig;
   changelog?: ChangelogContentConfig;
   git?: ChangelogGitConfig;
+  remote?: ChangelogRemoteConfig;
 }
 
 export type ChangelogOptions = {
@@ -170,12 +205,14 @@ export interface InlineConfig extends UserConfig {
   dryRun?: boolean;
 }
 
-export type NormalizedChangelogOptions = SetRequired<
-  ChangelogOptions,
-  "template"
-> & {
-  args: string[];
-};
+export type NormalizedChangelogOptions = Required<
+  OverrideProperties<
+    ChangelogOptions,
+    {
+      args: string[];
+    }
+  >
+>;
 
 export type ResolvedConfig = MergeDeep<
   RequiredDeep<InlineConfig>,
