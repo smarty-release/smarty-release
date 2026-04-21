@@ -28,7 +28,7 @@ cli
   });
 
 cli
-  .command("changelog [...args]", "Options to pass to git-cliff", {
+  .command("changelog", "Options to pass to git-cliff", {
     allowUnknownOptions: true,
   })
   .option("-c, --config <path>", "Path to the config file")
