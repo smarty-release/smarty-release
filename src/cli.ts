@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 
 import { NAME } from "./constants.ts";
-import { logger } from "./utils/index.js";
+import { logger, getCommandRawArgs } from "./utils/index.js";
 import pkg from "../package.json" with { type: "json" };
 import lt from "semver/functions/lt.js";
 import { cac } from "cac";
-import { release } from "./release.ts";
 import { CancelledError } from "./errors.ts";
-import { changelog } from "./changelog.ts";
 import { InlineConfig } from "./config/types.ts";
 
 if (lt(process.version, "22.18.0")) {
@@ -24,22 +22,20 @@ cli
   .alias("run")
   .option("--dry-run", "preview without publishing")
   .option("-c, --config <path>", "Path to the config file")
-  .action(async (root, options: InlineConfig) => {
+  .action(async (run, options: InlineConfig) => {
+    const { release } = await import("./release.ts");
     await release(options);
   });
 
 cli
-  .command("changelog", "Options to pass to git-cliff", {
+  .command("changelog [...args]", "Options to pass to git-cliff", {
     allowUnknownOptions: true,
   })
   .option("-c, --config <path>", "Path to the config file")
-  .action(async (files, options) => {
-    const raw = cli.rawArgs;
-    const idx = raw.findIndex((arg) => arg === "changelog");
-    // 取后面的参数（排除 node / script）
-    const args = idx !== -1 ? raw.slice(idx + 1) : [];
-
-    await changelog(args);
+  .action(async (input, options: InlineConfig) => {
+    const { changelog } = await import("./changelog.ts");
+    const args = getCommandRawArgs(cli.rawArgs, ["changelog"]);
+    await changelog(options, args);
   });
 
 try {

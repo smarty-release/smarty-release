@@ -154,3 +154,12 @@ export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
     }
   }
 }
+
+export function getCommandRawArgs(
+  rawArgs: string[],
+  commandNames: string[],
+): string[] {
+  const idx = rawArgs.findIndex((arg) => commandNames.includes(arg));
+
+  return idx === -1 ? [] : rawArgs.slice(idx + 1);
+}

@@ -35,7 +35,7 @@ export async function runGitCliff(
   try {
     await x(bin, args, {
       nodeOptions: {
-        stdio: "inherit",
+        stdio: "pipe",
         ...spawnOptions,
       },
       throwOnError: true,
@@ -43,7 +43,6 @@ export async function runGitCliff(
   } catch (error) {
     throw new GenerateChangelogError();
   }
-
   await remove(cacheDir);
 }
 
