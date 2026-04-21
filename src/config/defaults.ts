@@ -1,4 +1,5 @@
 import type { InlineConfig } from "./types.ts";
+import { NAME } from "../constants.ts";
 
 const defaults = {
   increments: ["patch", "minor", "major"],
@@ -9,8 +10,8 @@ const defaults = {
       args: "-o --tag ${version}",
       template: "github",
       config: {
-        git: {
-          commit_parsers: [{ message: "^release", skip: true }],
+        changelog: {
+          footer: `<!-- powered by ${NAME} -->`,
         },
       },
     },

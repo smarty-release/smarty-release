@@ -1,10 +1,5 @@
 import type { ReleaseType } from "semver";
-import type {
-  SetRequired,
-  RequiredDeep,
-  MergeDeep,
-  OverrideProperties,
-} from "type-fest";
+import type { RequiredDeep, MergeDeep, OverrideProperties } from "type-fest";
 import type { ConsolaInstance } from "consola";
 
 export type ChangelogTemplate =
@@ -20,6 +15,12 @@ export type ChangelogTemplate =
   | "statistics"
   | "unconventional"
   | (string & {}); // 任意字符串，兼容远程链接
+
+type RemoteProviderConfig = {
+  owner?: string;
+  repo?: string;
+  token?: string;
+};
 
 // commit parser 类型
 export interface CommitParser {
@@ -76,17 +77,11 @@ export interface ChangelogBumpConfig {
 
 // remote 配置
 export interface ChangelogRemoteConfig {
-  github?: {
-    owner?: string;
-    repo?: string;
-    token?: string;
-  };
-  azure_devops?: {
-    owner?: string;
-    repo?: string;
-    token?: string;
-  };
-  [key: string]: unknown;
+  github?: RemoteProviderConfig;
+  azure_devops?: RemoteProviderConfig;
+  gitlab?: RemoteProviderConfig;
+  gitea?: RemoteProviderConfig;
+  bitbucket?: RemoteProviderConfig;
 }
 
 export interface ChangelogConfig {
