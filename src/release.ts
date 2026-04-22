@@ -52,7 +52,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
       }
       // bump
       await runHook(config.hooks?.["before:bump"], ctx);
-      await effect(config, `版本提升`, async () => {
+      await effect(config, `bump version: 1.1.0 → 1.2.0`, async () => {
         await bump(config, ctx);
       });
 

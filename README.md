@@ -18,6 +18,7 @@
 - 防止预发布版本误发布到 npm `latest`
 - 支持灵活配置 npm [dist-tags](https://docs.npmjs.com/cli/dist-tag)
 - 发布失败自动回滚到初始状态
+- 本地仅执行 tag 与 push，CI（比如GitHub Actions）负责后续发布流水线
 
 ## 文档
 
