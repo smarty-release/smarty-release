@@ -24,7 +24,7 @@ export async function changelog(
   config.git.changelog.args = args;
 
   // 开始调用git-cliff
-  await runGitCliff(config.git.changelog);
+  // await runGitCliff(config.git.changelog);
 }
 
 
@@ -39,7 +39,6 @@ import lt from "semver/functions/lt.js";
 import { cac } from "cac";
 import { CancelledError } from "./errors.ts";
 import { InlineConfig } from "./config/types.ts";
-import { release } from "./release.ts";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(
@@ -56,7 +55,7 @@ cli
   .option("--dry-run", "preview without publishing")
   .option("-c, --config <path>", "Path to the config file")
   .action(async (run, options: InlineConfig) => {
-    // const { release } = await import("./release.ts");
+    const { release } = await import("./release.ts");
     await release(options);
   });
 
@@ -102,11 +101,11 @@ const defaults = {
     changelog: {
       args: "-o --tag ${version}",
       template: "github",
-      // config: {
-      //   changelog: {
-      //     footer: `<!-- powered by ${NAME} -->`,
-      //   },
-      // },
+      config: {
+        changelog: {
+          footer: `<!-- powered by ${NAME} -->`,
+        },
+      },
     },
     requireBranch: false,
     commitMessage: "release: v${version}",
@@ -782,7 +781,6 @@ import { outputFile, remove } from "./utils/fs.ts";
 import { x } from "tinyexec";
 import { SpawnOptions } from "node:child_process";
 import { NAME } from "./constants.ts";
-import { GenerateChangelogError } from "./errors.ts";
 
 const require = createRequire(import.meta.url);
 // 当前脚本所在目录
@@ -802,17 +800,14 @@ export async function runGitCliff(
 
   const bin = await getExePath();
 
-  try {
-    await x(bin, args, {
-      nodeOptions: {
-        stdio: "pipe",
-        ...spawnOptions,
-      },
-      throwOnError: true,
-    });
-  } catch (error) {
-    throw new GenerateChangelogError();
-  }
+  await x(bin, args, {
+    nodeOptions: {
+      stdio: "pipe",
+      ...spawnOptions,
+    },
+    throwOnError: true,
+  });
+
   await remove(cacheDir);
 }
 
@@ -907,13 +902,13 @@ import {
 } from "./steps/index.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { hasChangelog } from "./utils/type.ts";
-import { gitReset, runHook } from "./utils/index.ts";
+import { effect, gitReset, runHook } from "./utils/index.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
   // 处理参数
   const config: ResolvedConfig = await resolveConfig(inlineConfig);
   // 验证git仓库状态
-  // await checkGitRepoStatus(config);
+  await checkGitRepoStatus(config);
   const ctx = await createContext(config);
 
   try {
@@ -933,44 +928,56 @@ export async function release(inlineConfig: InlineConfig = {}) {
       // 变更日志
       if (hasChangelog(config)) {
         await runHook(config.hooks?.["before:changelog"], ctx);
-        await genChangelog(config, ctx);
+
+        await effect(config, `生成变更日志`, async () => {
+          await genChangelog(config, ctx);
+        });
+
         await runHook(config.hooks?.["after:changelog"], ctx);
         await confirmChangelog(ctx);
       }
       // bump
       await runHook(config.hooks?.["before:bump"], ctx);
-      await bump(config, ctx);
+      await effect(config, `版本提升`, async () => {
+        await bump(config, ctx);
+      });
+
       await runHook(config.hooks?.["after:bump"], ctx);
 
       // 总结阶段
       await summary(config, ctx);
-      // git系列
-      await runHook(config.hooks?.["before:git"], ctx);
 
-      // git 具体步骤
-      await runHook(config.hooks?.["before:git.add"], ctx);
-      await gitAdd();
-      await runHook(config.hooks?.["after:git.add"], ctx);
+      await effect(config, `git操作(add、commit、tag、push)`, async () => {
+        // git系列
+        await runHook(config.hooks?.["before:git"], ctx);
+        // git 具体步骤
+        await runHook(config.hooks?.["before:git.add"], ctx);
+        await gitAdd();
+        await runHook(config.hooks?.["after:git.add"], ctx);
 
-      await runHook(config.hooks?.["before:git.commit"], ctx);
-      await gitCommit(config, ctx);
-      await runHook(config.hooks?.["after:git.commit"], ctx);
+        await runHook(config.hooks?.["before:git.commit"], ctx);
+        await gitCommit(config, ctx);
+        await runHook(config.hooks?.["after:git.commit"], ctx);
 
-      await runHook(config.hooks?.["before:git.tag"], ctx);
-      await gitTag(config, ctx);
-      await runHook(config.hooks?.["after:git.tag"], ctx);
+        await runHook(config.hooks?.["before:git.tag"], ctx);
+        await gitTag(config, ctx);
+        await runHook(config.hooks?.["after:git.tag"], ctx);
 
-      await runHook(config.hooks?.["before:git.push"], ctx);
-      await gitPush(config, ctx);
-      await runHook(config.hooks?.["after:git.push"], ctx);
+        await runHook(config.hooks?.["before:git.push"], ctx);
+        await gitPush(config, ctx);
+        await runHook(config.hooks?.["after:git.push"], ctx);
 
-      await runHook(config.hooks?.["after:git"], ctx);
+        await runHook(config.hooks?.["after:git"], ctx);
 
-      // 流程走完之后
-      await runHook(config.hooks?.["after:release"], ctx);
+        // 流程走完之后
+        await runHook(config.hooks?.["after:release"], ctx);
+      });
     });
   } catch (err) {
-    await gitReset(ctx); // 回滚
+    await effect(config, `git reset操作...`, async () => {
+      await gitReset(ctx); // 回滚
+    });
+
     throw err;
   }
 }
@@ -1006,6 +1013,7 @@ src/steps/checkGitRepoStatus.ts内容如下：
 
 import { ResolvedConfig } from "../config/types.ts";
 import {
+  effect,
   getGitRemoteUrl,
   hasGit,
   isGitClean,
@@ -1026,9 +1034,13 @@ export async function checkGitRepoStatus(config: ResolvedConfig) {
   // 检查是否是一个git仓库
   const isRepo = await isGitRepo(cwd);
   if (!isRepo) throw new NotGitRepoError();
-  // 检查是否是一个干净的Git仓库
-  const isClean = await isGitClean(cwd);
-  if (!isClean) throw new GitDirtyError();
+
+  await effect(config, `Ensuring working directory is clean…`, async () => {
+    // 检查是否是一个干净的Git仓库
+    const isClean = await isGitClean(cwd);
+    if (!isClean) throw new GitDirtyError();
+  });
+
   // 获取远程提交地址
   const remoteUrl = getGitRemoteUrl(cwd);
   if (!remoteUrl) throw new GitRemoteNotFoundError();
@@ -1165,6 +1177,7 @@ import { ReleaseContext } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
 import { ResolvedConfigWithChangelog } from "../utils/type.ts";
 import ora from "ora";
+import { GenerateChangelogError } from "../errors.ts";
 
 export async function genChangelog(
   config: ResolvedConfigWithChangelog,
@@ -1173,10 +1186,14 @@ export async function genChangelog(
   config.git.changelog.args = renderArgs(config.git.changelog.args, ctx);
 
   const spinner = ora("Generating changelog, please wait…").start();
-  // await runGitCliff(config.git.changelog, {
-  //   stdio: "ignore",
-  // });
-  console.log("www");
+
+  try {
+    await runGitCliff(config.git.changelog, {
+      stdio: "pipe",
+    });
+  } catch (error) {
+    throw new GenerateChangelogError();
+  }
 
   spinner.stop();
 }
@@ -1579,6 +1596,7 @@ export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
   for (const hookItem of hook) {
     if (typeof hookItem === "string") {
       const cmd = renderTemplate(hookItem, hookCtx);
+      logger.info(`Running hook: ${cmd}`);
       await x(cmd, [], {
         nodeOptions: {
           shell: true,
@@ -1586,6 +1604,8 @@ export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
         },
       });
     } else {
+      const name = hookItem.name || "anonymous";
+      logger.info(`Running hook: ${name}`);
       await hookItem(hookCtx);
     }
   }
@@ -1600,6 +1620,19 @@ export function getCommandRawArgs(
   return idx === -1 ? [] : rawArgs.slice(idx + 1);
 }
 
+export function effect<T>(
+  config: ResolvedConfig,
+  desc: string,
+  fn: () => Promise<T>,
+) {
+  if (config.dryRun) {
+    logger.info(`[dry-run] would ${desc}`);
+
+    return Promise.resolve(undefined as T);
+  }
+  return fn();
+}
+
 
 src/utils/timer.ts内容如下：
 
@@ -1607,7 +1640,7 @@ import { logger } from "./index.ts";
 import chalk from "chalk";
 export async function withTimer<T>(fn: () => Promise<T>): Promise<T> {
   const start = performance.now();
-  clearScreen();
+  // clearScreen();
   const result = await fn();
   const cost = formatDuration(performance.now() - start);
   logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
