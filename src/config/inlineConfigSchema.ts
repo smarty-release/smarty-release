@@ -184,7 +184,6 @@ export const inlineConfigSchema = v.object({
   git,
   hooks,
   cwd: v.optional(v.string()),
-
   config: v.optional(v.string()),
   dryRun: v.optional(v.boolean()),
 });

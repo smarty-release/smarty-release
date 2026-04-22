@@ -134,9 +134,11 @@ export type HookEvent =
 export interface ReleaseContext {
   name: string;
   tag: string;
+  latestVersion: string;
   version: string;
   git: {
     branch: string;
+    commitMessage: string;
     tagName: string;
   };
   repo: {
@@ -187,8 +189,6 @@ export interface UserConfig {
 
   /** 生命周期钩子 */
   hooks?: Hooks;
-
-  cwd?: string;
 }
 
 export interface InlineConfig extends UserConfig {
@@ -198,6 +198,7 @@ export interface InlineConfig extends UserConfig {
   config?: string;
 
   dryRun?: boolean;
+  cwd?: string;
 }
 
 export type NormalizedChangelogOptions = Required<

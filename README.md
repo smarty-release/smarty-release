@@ -9,6 +9,7 @@
 ## 特性
 
 - typescript构建
+- 非常轻量(本地仅执行 tag 与 push，CI负责后续发布流水线)
 - 交互式 CLI UI
 - 语义化版本（SemVer）管理（patch / minor / major / custom）
 - 确保在指定发布分支上执行发布
@@ -20,7 +21,6 @@
 - 防止预发布版本误发布到 npm `latest`
 - 支持灵活配置 npm [dist-tags](https://docs.npmjs.com/cli/dist-tag)
 - 发布失败自动回滚到初始状态
-- 本地仅执行 tag 与 push，CI（比如GitHub Actions）负责后续发布流水线
 
 ## 文档
 

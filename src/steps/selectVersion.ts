@@ -8,20 +8,19 @@ export async function selectVersion(
   ctx: ReleaseContext,
 ) {
   let targetVersion;
-  const currentVersion = ctx.version;
-  const isPrerelease = prerelease(currentVersion);
+  const isPrerelease = prerelease(ctx.latestVersion);
 
   // 构建版本选项
   const choices = config.increments.map((type) => ({
-    name: `${type} (${inc(currentVersion, type)})`,
-    value: inc(currentVersion, type),
+    name: `${type} (${inc(ctx.latestVersion, type)})`,
+    value: inc(ctx.latestVersion, type),
   }));
 
   // 如果当前是预发布版本，插入 prerelease 选项
   if (isPrerelease) {
     choices.unshift({
-      name: `prerelease (${inc(currentVersion, "prerelease")})`,
-      value: inc(currentVersion, "prerelease"),
+      name: `prerelease (${inc(ctx.latestVersion, "prerelease")})`,
+      value: inc(ctx.latestVersion, "prerelease"),
     });
   }
 
@@ -44,7 +43,7 @@ export async function selectVersion(
   if (release === "custom") {
     const customVersion = await input({
       message: "Input custom version",
-      default: currentVersion,
+      default: ctx.latestVersion,
       validate(value) {
         const v = value.trim();
 
@@ -52,8 +51,8 @@ export async function selectVersion(
           return "Invalid semver version";
         }
 
-        if (!gt(v, currentVersion)) {
-          return `Version must be greater than current version: ${currentVersion}`;
+        if (!gt(v, ctx.latestVersion)) {
+          return `Version must be greater than current version: ${ctx.latestVersion}`;
         }
 
         return true;
@@ -63,10 +62,11 @@ export async function selectVersion(
     targetVersion = customVersion;
   }
 
+  // 赋值给上下文
   ctx.version = targetVersion;
-  const tagName = renderTemplate(config.git.tagName, ctx);
   ctx.git = {
     ...ctx.git,
-    tagName,
+    tagName: renderTemplate(config.git.tagName, ctx),
+    commitMessage: renderTemplate(config.git.commitMessage, ctx),
   };
 }

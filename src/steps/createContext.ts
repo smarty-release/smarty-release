@@ -6,15 +6,14 @@ import {
   matchBranch,
 } from "../utils/index.js";
 import hostedGitInfo from "hosted-git-info";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import semver from "semver";
 import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import {
   CancelledError,
   GitRemoteParseError,
   NotAllowedBranchError,
 } from "../errors.ts";
-import type { PackageJson } from "pkg-types";
+import { readPackageJSON, type PackageJson } from "pkg-types";
 
 export async function createContext(
   config: ResolvedConfig,
@@ -41,30 +40,19 @@ async function collectPackageContext(
   config: ResolvedConfig,
   ctx: ReleaseContext,
 ) {
-  const pkgPath = resolve(config.cwd, "package.json");
+  const pkg = await readPackageJSON(config.cwd);
 
-  let pkg: PackageJson;
-  try {
-    pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-  } catch (err) {
-    throw new Error(
-      `Cannot read package.json in current directory: ${pkgPath}\n` +
-        `Please run this command in a Node.js project root.`,
-      { cause: err },
-    );
+  if (!pkg.name || pkg.name.trim() === "") {
+    throw new Error(`package.json "name" must be a non-empty string.`);
   }
 
-  if (!pkg.version || typeof pkg.version !== "string") {
-    throw new Error(`package.json does not contain a valid "version" field.`);
-  }
-
-  if (!pkg.name || typeof pkg.name !== "string") {
-    throw new Error(`package.json does not contain a valid "name" field.`);
+  if (!pkg.version || !semver.valid(pkg.version)) {
+    throw new Error(`package.json "version" must be a valid semver version.`);
   }
 
   // 赋值给上下文
   ctx.name = pkg.name;
-  ctx.version = pkg.version;
+  ctx.latestVersion = pkg.version;
 }
 
 async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
