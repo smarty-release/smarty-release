@@ -12,7 +12,6 @@ import { outputFile, remove } from "./utils/fs.ts";
 import { x } from "tinyexec";
 import { SpawnOptions } from "node:child_process";
 import { NAME } from "./constants.ts";
-import { GenerateChangelogError } from "./errors.ts";
 
 const require = createRequire(import.meta.url);
 // 当前脚本所在目录
@@ -32,17 +31,14 @@ export async function runGitCliff(
 
   const bin = await getExePath();
 
-  try {
-    await x(bin, args, {
-      nodeOptions: {
-        stdio: "pipe",
-        ...spawnOptions,
-      },
-      throwOnError: true,
-    });
-  } catch (error) {
-    throw new GenerateChangelogError();
-  }
+  await x(bin, args, {
+    nodeOptions: {
+      stdio: "pipe",
+      ...spawnOptions,
+    },
+    throwOnError: true,
+  });
+
   await remove(cacheDir);
 }
 
@@ -80,8 +76,6 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
   const defaultTplConfig = parse(defaultTplRaw);
 
   const finalConfig = defu(options.config, defaultTplConfig);
-
-  // console.dir(finalConfig, { depth: null });
 
   const tmpFile = join(cacheDir, `gitcliff-${randomUUID()}.toml`);
 

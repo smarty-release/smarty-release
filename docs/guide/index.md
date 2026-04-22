@@ -32,6 +32,8 @@
 - 借鉴release-it项目的钩子设计
 - 借鉴了np项目的部分思想(比如：release失败恢复到原始状态)
 
+因此**Smarty-Release**是一个非常简单且轻量的工具。
+
 ## 致谢 🙏
 
 - [vitepress](https://github.com/vuejs/vitepress)

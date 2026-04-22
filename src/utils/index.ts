@@ -143,6 +143,7 @@ export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
   for (const hookItem of hook) {
     if (typeof hookItem === "string") {
       const cmd = renderTemplate(hookItem, hookCtx);
+      logger.info(`Running hook: ${cmd}`);
       await x(cmd, [], {
         nodeOptions: {
           shell: true,
@@ -150,6 +151,8 @@ export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
         },
       });
     } else {
+      const name = hookItem.name || "anonymous";
+      logger.info(`Running hook: ${name}`);
       await hookItem(hookCtx);
     }
   }

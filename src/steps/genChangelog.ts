@@ -3,6 +3,7 @@ import { ReleaseContext } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.js";
 import { ResolvedConfigWithChangelog } from "../utils/type.ts";
 import ora from "ora";
+import { GenerateChangelogError } from "../errors.ts";
 
 export async function genChangelog(
   config: ResolvedConfigWithChangelog,
@@ -11,9 +12,15 @@ export async function genChangelog(
   config.git.changelog.args = renderArgs(config.git.changelog.args, ctx);
 
   const spinner = ora("Generating changelog, please wait…").start();
-  await runGitCliff(config.git.changelog, {
-    stdio: "ignore",
-  });
+
+  try {
+    await runGitCliff(config.git.changelog, {
+      stdio: "pipe",
+    });
+  } catch (error) {
+    throw new GenerateChangelogError();
+  }
+
   spinner.stop();
 }
 
