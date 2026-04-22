@@ -15,7 +15,7 @@ const defaults = {
         },
       },
     },
-    requireBranch: false,
+    requireBranch: ["main", "master"],
     commitMessage: "release: v${version}",
     commitArgs: ["--no-verify", "-s"],
     tagName: "v${version}",
