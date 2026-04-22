@@ -22,7 +22,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
   // 处理参数
   const config: ResolvedConfig = await resolveConfig(inlineConfig);
   // 验证git仓库状态
-  // await checkGitRepoStatus(config);
+  await checkGitRepoStatus(config);
   const ctx = await createContext(config);
 
   try {

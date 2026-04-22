@@ -48,6 +48,7 @@ export default defineConfig({
             { text: "简介", link: "/" },
             { text: "快速开始", link: "getting-started" },
             { text: "配置文件", link: "config-file" },
+            { text: "Hooks", link: "hooks" },
           ],
         },
       ],

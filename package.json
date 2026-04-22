@@ -38,7 +38,7 @@
     "lint:fix": "pnpm lint --fix",
     "build": "tsdown",
     "docs:build": "vitepress build docs",
-    "docs:dev": "vitepress dev docs --host 0.0.0.0",
+    "docs:dev": "vitepress dev docs",
     "docs:preview": "vitepress preview docs",
     "format": "prettier --cache --write .",
     "release": "pnpm build && node dist/cli.mjs",

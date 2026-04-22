@@ -166,3 +166,16 @@ export function getCommandRawArgs(
 
   return idx === -1 ? [] : rawArgs.slice(idx + 1);
 }
+
+export function effect<T>(
+  config: ResolvedConfig,
+  desc: string,
+  fn: () => Promise<T>,
+) {
+  if (config.dryRun) {
+    logger.info(`[dry-run] would ${desc}`);
+
+    return Promise.resolve(undefined as T);
+  }
+  return fn();
+}
