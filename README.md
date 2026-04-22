@@ -7,8 +7,9 @@
 
 ## 特性
 
+- typescript构建
 - 交互式 CLI UI
-- 交互式语义化版本（SemVer）管理（patch / minor / major / custom）
+- 语义化版本（SemVer）管理（patch / minor / major / custom）
 - 确保在指定发布分支上执行发布
 - 确保 Git 工作目录干净
 - 基于 git-cliff 自动生成变更日志
