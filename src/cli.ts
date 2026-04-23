@@ -20,8 +20,9 @@ cli.help().version(pkg.version);
 cli
   .command("[run]", "Start release process")
   .alias("run")
-  .option("--dry-run", "preview without publishing")
+  .option("-d, --dry-run", "Simulate release without applying changes.")
   .option("-c, --config <path>", "Path to the config file")
+  .option("-V, --verbose", "Verbose output (user hooks output)")
   .action(async (run, options: InlineConfig) => {
     const { release } = await import("./release.ts");
     await release(options);

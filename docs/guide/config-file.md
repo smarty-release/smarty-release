@@ -6,13 +6,13 @@
 
 默认情况下，`Smarty-Release` 会在当前工作目录中查找配置文件。它支持以下文件名：
 
-- smarty-release.config.ts （需要[额外配置](#typescript-config-file)）
-- smarty-release.config.mts （需要[额外配置](#typescript-config-file)）
-- smarty-release.config.cts （需要[额外配置](#typescript-config-file)）
 - smarty-release.config.js
 - smarty-release.config.mjs
 - smarty-release.config.cjs
 - smarty-release.config.json
+- smarty-release.config.ts （需要[额外配置](#typescript-config-file)）
+- smarty-release.config.mts （需要[额外配置](#typescript-config-file)）
+- smarty-release.config.cts （需要[额外配置](#typescript-config-file)）
 
 此外，您还可以直接在 package.json 文件的 `smarty-release` 字段中定义配置。
 
