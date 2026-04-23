@@ -4,7 +4,7 @@
 
 ## 起源
 
-**Smarty-Release**的最初模型实际上来自开源 vitepress 项目的 [scripts/release.js](https://github.com/vuejs/vitepress/blob/main/scripts/release.js) 脚本,最开始我也在我的很多npm包中使用了这个脚本来辅助发版,但是随着npm包越来越多这种方式就会暴露以下问题：
+**Smarty-Release**的最初模型实际上来自开源项目 vitepress 的 [scripts/release.js](https://github.com/vuejs/vitepress/blob/main/scripts/release.js) 脚本,最开始我也在我的很多npm包中使用了这个脚本来辅助发版,但是随着npm包越来越多这种方式就会暴露以下问题：
 
 - 每次都要复制一遍脚本到新项目，繁琐😖！！。
 - package.json中需要安装较多依赖项😅

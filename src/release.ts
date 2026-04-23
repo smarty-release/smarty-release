@@ -43,7 +43,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
       if (hasChangelog(config)) {
         await runHook(config.hooks?.["before:changelog"], ctx);
 
-        await effect(config, `生成变更日志`, async () => {
+        await effect(config, `generate changelog`, async () => {
           await genChangelog(config, ctx);
         });
 
@@ -65,7 +65,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
       // 总结阶段
       await summary(config, ctx);
 
-      await effect(config, `git操作(add、commit、tag、push)`, async () => {
+      await effect(config, `run git operations and hooks`, async () => {
         // git系列
         await runHook(config.hooks?.["before:git"], ctx);
         // git 具体步骤
@@ -92,7 +92,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
       });
     });
   } catch (err) {
-    await effect(config, `git reset操作...`, async () => {
+    await effect(config, `run git reset`, async () => {
       await gitReset(ctx); // 回滚
     });
 

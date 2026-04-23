@@ -196,7 +196,6 @@ export interface InlineConfig extends UserConfig {
    * Config file path
    */
   config?: string;
-
   dryRun?: boolean;
   cwd?: string;
 }

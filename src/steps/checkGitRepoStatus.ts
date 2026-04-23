@@ -22,7 +22,7 @@ export async function checkGitRepoStatus(config: ResolvedConfig) {
   const isRepo = await isGitRepo(cwd);
   if (!isRepo) throw new NotGitRepoError();
 
-  await effect(config, `Ensuring working directory is clean…`, async () => {
+  await effect(config, `check if working directory is clean`, async () => {
     // 检查是否是一个干净的Git仓库
     const isClean = await isGitClean(cwd);
     if (!isClean) throw new GitDirtyError();
