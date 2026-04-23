@@ -22,10 +22,6 @@
 - 支持灵活配置 npm [dist-tags](https://docs.npmjs.com/cli/dist-tag)
 - 发布失败自动回滚到初始状态
 
-## 文档
-
-如需完整文档，请访问[Documentation](https://smarty-release.github.io/smarty-release/)。
-
 ## 安装
 
 ```bash
@@ -37,6 +33,10 @@ npm i -D smarty-release
 ```bash
 npx smarty-release
 ```
+
+## 文档
+
+如需完整文档，请访问[Documentation](https://smarty-release.github.io/smarty-release/)。
 
 ## 谁在用
 

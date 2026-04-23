@@ -1,27 +1,23 @@
 # Command Line
 
 ```
-yarn add bundlewatch --dev
-yarn bundlewatch --help
+npm install smarty-release -D
+npx smarty-release --help
 
-  Usage: bundlewatch [options] <filePathGlobs ...>
+Usage:
+  $ smarty-release [run]
 
-  Options:
+Commands:
+  [run]      Start release process
+  changelog  Options to pass to git-cliff
 
-    --config [configFilePath]    file to read configuration from, if used all options are blown away
-    --max-size [maxSize]         maximum size threshold (e.g. 3kb)
-    --compression [compression]  specify which compression algorithm to use
-    --normalize [regex]          normalize filenames via regex, any match will be removed
-    -h, --help                   output usage information
+For more info, run any command with the `--help` flag:
+  $ smarty-release --help
+  $ smarty-release changelog --help
 
-  Examples:
-
-   Read configuration from package.json
-bundlewatch
-
-   Read configuration from file
-bundlewatch --config internals/bundlewatch.config.js
-
-   Use command line
-bundlewatch --max-size 100KB ./src/*.js /lib/*.js
+Options:
+  --dry-run            preview without publishing
+  -c, --config <path>  Path to the config file
+  -h, --help           Display this message
+  -v, --version        Display version number
 ```

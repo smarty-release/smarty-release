@@ -1,0 +1,3 @@
+{
+  "include": [".vitepress/**/*.ts", ".vitepress/**/*.d.ts", "**/*.ts"]
+}

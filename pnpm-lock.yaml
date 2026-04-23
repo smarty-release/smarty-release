@@ -99,6 +99,9 @@ importers:
       vitepress-plugin-group-icons:
         specifier: ^1.7.5
         version: 1.7.5(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1))
+      vitepress-plugin-tabs:
+        specifier: ^0.9.0
+        version: 0.9.0(vitepress@2.0.0-alpha.17(@types/node@25.5.0)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.8)(typescript@6.0.2))(vue@3.5.31(typescript@6.0.2))
     optionalDependencies:
       git-cliff-darwin-arm64:
         specifier: 2.12.0
@@ -2037,6 +2040,12 @@ packages:
       vite:
         optional: true
 
+  vitepress-plugin-tabs@0.9.0:
+    resolution: {integrity: sha512-OB+/T6SkwGIQHIQi1NLl011kWCMzfsVEx0/q+NfF6EmvvpcfDzRClc/iEwUlq8TkQnFxANu+GTdmvtXEjJM2Lg==}
+    peerDependencies:
+      vitepress: ^1.0.0 || ^2.0.0-alpha.17
+      vue: ^3.5.0
+
   vitepress@2.0.0-alpha.17:
     resolution: {integrity: sha512-Z3VPUpwk/bHYqt1uMVOOK1/4xFiWQov1GNc2FvMdz6kvje4JRXEOngVI9C+bi5jeedMSHiA4dwKkff1NCvbZ9Q==}
     hasBin: true
@@ -3780,6 +3789,11 @@ snapshots:
       '@iconify/utils': 3.1.0
     optionalDependencies:
       vite: 7.3.1(@types/node@25.5.0)(jiti@2.6.1)
+
+  vitepress-plugin-tabs@0.9.0(vitepress@2.0.0-alpha.17(@types/node@25.5.0)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.8)(typescript@6.0.2))(vue@3.5.31(typescript@6.0.2)):
+    dependencies:
+      vitepress: 2.0.0-alpha.17(@types/node@25.5.0)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.8)(typescript@6.0.2)
+      vue: 3.5.31(typescript@6.0.2)
 
   vitepress@2.0.0-alpha.17(@types/node@25.5.0)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.8)(typescript@6.0.2):
     dependencies:
