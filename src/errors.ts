@@ -82,3 +82,12 @@ export class GitTagError extends BaseError {
     super(message);
   }
 }
+
+export class GitBranchError extends BaseError {
+  constructor(
+    message = "Failed to determine current Git branch.",
+    public cause?: unknown,
+  ) {
+    super(message);
+  }
+}

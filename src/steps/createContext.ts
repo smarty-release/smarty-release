@@ -10,10 +10,11 @@ import semver from "semver";
 import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import {
   CancelledError,
+  GitBranchError,
   GitRemoteParseError,
   NotAllowedBranchError,
 } from "../errors.ts";
-import { readPackageJSON, type PackageJson } from "pkg-types";
+import { readPackageJSON } from "pkg-types";
 
 export async function createContext(
   config: ResolvedConfig,
@@ -58,7 +59,11 @@ async function collectPackageContext(
 async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
   const { requireBranch } = config.git;
 
-  ctx.branchName = await getGitCurrentBranch();
+  try {
+    ctx.branchName = await getGitCurrentBranch();
+  } catch (err) {
+    throw new GitBranchError();
+  }
 
   if (!requireBranch) return; // 不需要校验分支 -> 直接跳过 git IO
   if (!matchBranch(requireBranch, ctx.branchName)) {

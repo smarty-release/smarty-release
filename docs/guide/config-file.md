@@ -21,7 +21,7 @@
 :::
 
 ::: details 关于文件扩展名的说明：
-`.mjs` 扩展名会使文件采用 [ES 模块（ESM）](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)格式。默认情况下，Node 会将 `.js` 文件按 [CommonJS（CJS）](https://nodejs.org/api/modules.html)格式解析，但如果你在 package.json 中设置了 `"type": "module"`，那么也可以使用 smarty-release.config.js。
+`.mjs` 扩展名会使文件采用 [ES 模块（ESM）](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)格式。默认情况下，Node 会将 `.js` 文件按 [CommonJS（CJS）](https://nodejs.org/api/modules.html)格式解析，但如果你在 package.json 中设置了 `"type": "module"`，那么也可以使用 `smarty-release.config.js`。
 :::
 
 <a id="config-object"></a>

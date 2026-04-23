@@ -124,7 +124,9 @@ export function matchBranch(rule: RequireBranch, current: string): boolean {
 }
 
 export async function getGitCurrentBranch(): Promise<string> {
-  const { stdout } = await x("git", ["rev-parse", "--abbrev-ref", "HEAD"], {});
+  const { stdout } = await x("git", ["symbolic-ref", "--short", "HEAD"], {
+    throwOnError: true,
+  });
   return stdout.trim();
 }
 
