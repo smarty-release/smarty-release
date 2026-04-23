@@ -21,8 +21,13 @@ export async function loadConfig<T>(
     loaders: {
       ".mts": loadTs,
       ".ts": loadTs,
+      ".cts": loadTs,
     },
-    searchPlaces: [`${name}.config.ts`, `${name}.config.mts`],
+    searchPlaces: [
+      `${name}.config.ts`,
+      `${name}.config.mts`,
+      `${name}.config.cts`,
+    ],
   });
 
   let result;
