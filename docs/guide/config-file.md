@@ -37,6 +37,8 @@
 
 可以看到它的配置非常简单的,主要分为四个属性组成。
 
+<a id="writing-a-config-file"></a>
+
 ## 编写配置文件
 
 以下是一个简单的 `smarty-release` 配置文件示例：
@@ -60,7 +62,7 @@ module.exports = defineConfig({
     },
   },
   hooks: {
-    "before:init": ["pnpm test"],
+    "before:init": "pnpm test",
     "after:release": "echo 已推送 v${version} ",
   },
 });
@@ -84,8 +86,8 @@ export default defineConfig({
     },
   },
   hooks: {
-    "before:init": ["pnpm test"],
-    "after:changelog": "pnpm prettier --write CHANGELOG.md",
+    "before:init": "pnpm test",
+    "after:release": "echo 已推送 v${version} ",
   },
 });
 ```
@@ -107,7 +109,7 @@ module.exports = {
     },
   },
   hooks: {
-    "before:init": ["pnpm test"],
+    "before:init": "pnpm test",
     "after:release": "echo 已推送 v${version} ",
   },
 };
@@ -130,7 +132,7 @@ exports default {
     },
   },
   hooks: {
-    "before:init": ["pnpm test"],
+    "before:init": "pnpm test",
     "after:release": "echo 已推送 v${version} ",
   },
 };

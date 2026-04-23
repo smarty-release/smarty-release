@@ -37,10 +37,17 @@ hooks 解决的是：
 
 ## 示例
 
-我们可以举一个简单的例子：在生成变更日志之后，自动 format 一下
+我们可以举一个简单的例子,在生成变更日志之后，自动 format 一下
 
-```js
-"after:changelog": "prettier --write CHANGELOG.md"
+```ts
+import { defineConfig } from "smarty-release";
+
+export default defineConfig({
+  //...
+  hooks: {
+    "after:changelog": "prettier --write CHANGELOG.md",
+  },
+});
 ```
 
 刚好钩子可以解决这个问题,那就是可以让用户使用外部自己的格式化工具来进行处理,这样可以和项目保持一致的风格
