@@ -39,7 +39,9 @@ export default defineConfig({
         activeMatch: "/reference/",
       },
     ],
-
+    outline: {
+      level: "deep",
+    },
     logo: { src: "/logo-mini.svg", width: 24, height: 24 },
     sidebar: {
       "/guide/": [

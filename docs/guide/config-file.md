@@ -59,7 +59,6 @@ module.exports = defineConfig({
       template: "github",
     },
   },
-
   hooks: {
     "before:init": ["pnpm test"],
     "after:release": "echo 已推送 v${version} ",
@@ -107,7 +106,6 @@ module.exports = {
       template: "github",
     },
   },
-
   hooks: {
     "before:init": ["pnpm test"],
     "after:release": "echo 已推送 v${version} ",
@@ -131,12 +129,41 @@ exports default {
       template: "github",
     },
   },
-
   hooks: {
     "before:init": ["pnpm test"],
     "after:release": "echo 已推送 v${version} ",
   },
 };
+```
+
+:::
+
+### 其它示例 - smarty-release.config.cts
+
+`.cts` 格式结合了 TypeScript 的类型安全和 CommonJS 的模块系统，适合需要类型检查的 CommonJS 项目。对于 TypeScript 代码库，您还可以使用[satisfies](https://www.tslang.org/release-notes/typescript-4-9#satisfies-%E8%BF%90%E7%AE%97%E7%AC%A6)运算符来确保类型安全：
+
+::: details 点此查看代码
+
+```ts
+import type { UserConfig } from "smarty-release";
+
+module.exports = {
+  increments: ["patch", "minor", "major"],
+  tags: ["latest", "next"],
+  git: {
+    requireBranch: "master",
+    commitMessage: "release: v${version}",
+    tagName: "v${version}",
+    changelog: {
+      args: "-o --tag ${version}",
+      template: "github",
+    },
+  },
+  hooks: {
+    "before:init": ["pnpm test"],
+    "after:release": "echo 已推送 v${version} ",
+  },
+} satisfies UserConfig;
 ```
 
 :::
