@@ -16,8 +16,9 @@ For more info, run any command with the `--help` flag:
   $ smarty-release changelog --help
 
 Options:
-  --dry-run            preview without publishing
+  -d, --dry-run        Simulate release without applying changes.
   -c, --config <path>  Path to the config file
+  -V, --verbose        Verbose output (user hooks output)
   -h, --help           Display this message
   -v, --version        Display version number
 ```
