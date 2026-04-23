@@ -38,26 +38,19 @@ export async function gitChangeset() {
   await x("git", ["status", "--porcelain"], {});
 }
 
-export async function isGitRepo(cwd: string) {
+export async function isGitRepo() {
   try {
     const { stdout } = await x("git", ["rev-parse", "--is-inside-work-tree"], {
-      nodeOptions: {
-        cwd,
-      },
+      throwOnError: true,
     });
-
     return stdout.trim() === "true";
   } catch {
     return false;
   }
 }
 
-export async function isGitClean(cwd: string) {
-  const { stdout } = await x("git", ["status", "--porcelain"], {
-    nodeOptions: {
-      cwd,
-    },
-  });
+export async function isGitClean() {
+  const { stdout } = await x("git", ["status", "--porcelain"]);
   return stdout.trim().length === 0;
 }
 
@@ -70,12 +63,10 @@ export async function hasGit() {
   }
 }
 
-export async function getGitRemoteUrl(cwd: string): Promise<string> {
+export async function getGitRemoteUrl(): Promise<string> {
   try {
     const { stdout } = await x("git", ["remote", "get-url", "origin"], {
-      nodeOptions: {
-        cwd,
-      },
+      throwOnError: true,
     });
     return stdout.trim();
   } catch {

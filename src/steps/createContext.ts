@@ -74,7 +74,7 @@ async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
 }
 
 async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
-  const remoteUrl = await getGitRemoteUrl(config.cwd);
+  const remoteUrl = await getGitRemoteUrl();
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
 
