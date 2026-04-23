@@ -34,13 +34,8 @@ export const defu = createDefu((obj, key, value) => {
   }
 });
 
-export async function gitChangeset(cwd: string) {
-  await x("git", ["status", "--porcelain"], {
-    nodeOptions: {
-      stdio: "inherit",
-      cwd,
-    },
-  });
+export async function gitChangeset() {
+  await x("git", ["status", "--porcelain"], {});
 }
 
 export async function isGitRepo(cwd: string) {
@@ -128,12 +123,8 @@ export function matchBranch(rule: RequireBranch, current: string): boolean {
   return false;
 }
 
-export async function getGitCurrentBranch(cwd: string): Promise<string> {
-  const { stdout } = await x("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
-    nodeOptions: {
-      cwd,
-    },
-  });
+export async function getGitCurrentBranch(): Promise<string> {
+  const { stdout } = await x("git", ["rev-parse", "--abbrev-ref", "HEAD"], {});
   return stdout.trim();
 }
 

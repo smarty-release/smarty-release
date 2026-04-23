@@ -136,8 +136,9 @@ export interface ReleaseContext {
   tag: string;
   latestVersion: string;
   version: string;
+  branchName: string;
   git: {
-    branch: string;
+    changelog: string;
     commitMessage: string;
     tagName: string;
   };

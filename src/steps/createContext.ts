@@ -58,16 +58,12 @@ async function collectPackageContext(
 async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
   const { requireBranch } = config.git;
 
-  const branch = await getGitCurrentBranch(config.cwd);
-  ctx.git = {
-    ...ctx.git,
-    branch,
-  };
+  ctx.branchName = await getGitCurrentBranch();
 
   if (!requireBranch) return; // 不需要校验分支 -> 直接跳过 git IO
-  if (!matchBranch(requireBranch, branch)) {
+  if (!matchBranch(requireBranch, ctx.branchName)) {
     throw new NotAllowedBranchError(
-      `Release is only allowed on ${String(requireBranch)}, current: ${branch}`,
+      `Release is only allowed on ${String(requireBranch)}, current: ${ctx.branchName}`,
     );
   }
 }
