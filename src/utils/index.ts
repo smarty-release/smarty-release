@@ -4,6 +4,7 @@ import { NAME } from "../constants.ts";
 import { HookItems, ReleaseContext, ResolvedConfig } from "../config/types.ts";
 import { createDefu } from "defu";
 import type { Get } from "type-fest";
+import chalk from "chalk";
 
 type RequireBranch = Get<ResolvedConfig, "git.requireBranch">;
 
@@ -157,7 +158,7 @@ export function effect<T>(
   fn: () => Promise<T>,
 ) {
   if (config.dryRun) {
-    logger.info(`[dry-run] would ${desc}`);
+    logger.info(chalk.yellow(`[dry-run] would ${desc}`));
 
     return Promise.resolve(undefined as T);
   }

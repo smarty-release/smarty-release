@@ -28,30 +28,56 @@ export async function release(inlineConfig: InlineConfig = {}) {
   try {
     await withTimer(async () => {
       // 流程开始
-      await runHook(config.hooks?.["before:init"], ctx);
+
+      await effect(config, `run hook before:init`, async () => {
+        await runHook(config.hooks?.["before:init"], ctx);
+      });
+
       // 选择版本
-      await runHook(config.hooks?.["before:selectVersion"], ctx);
+      await effect(config, `run hook before:selectVersion`, async () => {
+        await runHook(config.hooks?.["before:selectVersion"], ctx);
+      });
+
       await selectVersion(config, ctx);
-      await runHook(config.hooks?.["after:selectVersion"], ctx);
+
+      await effect(config, `run hook after:selectVersion`, async () => {
+        await runHook(config.hooks?.["after:selectVersion"], ctx);
+      });
 
       // 选择tag
-      await runHook(config.hooks?.["before:selectTag"], ctx);
+
+      await effect(config, `run hook before:selectTag`, async () => {
+        await runHook(config.hooks?.["before:selectTag"], ctx);
+      });
+
       await selectTag(config, ctx);
-      await runHook(config.hooks?.["after:selectTag"], ctx);
+
+      await effect(config, `run hook after:selectTag`, async () => {
+        await runHook(config.hooks?.["after:selectTag"], ctx);
+      });
 
       // 变更日志
       if (hasChangelog(config)) {
-        await runHook(config.hooks?.["before:changelog"], ctx);
+        await effect(config, `run hook before:changelog`, async () => {
+          await runHook(config.hooks?.["before:changelog"], ctx);
+        });
 
         await effect(config, `generate changelog`, async () => {
           await genChangelog(config, ctx);
         });
 
-        await runHook(config.hooks?.["after:changelog"], ctx);
+        await effect(config, `run hook after:changelog`, async () => {
+          await runHook(config.hooks?.["after:changelog"], ctx);
+        });
+
         await confirmChangelog(ctx);
       }
+
       // bump
-      await runHook(config.hooks?.["before:bump"], ctx);
+      await effect(config, `run hook before:bump`, async () => {
+        await runHook(config.hooks?.["before:bump"], ctx);
+      });
+
       await effect(
         config,
         `bump version: ${ctx.latestVersion} → ${ctx.version}`,
@@ -60,12 +86,14 @@ export async function release(inlineConfig: InlineConfig = {}) {
         },
       );
 
-      await runHook(config.hooks?.["after:bump"], ctx);
+      await effect(config, `run hook after:bump`, async () => {
+        await runHook(config.hooks?.["after:bump"], ctx);
+      });
 
       // 总结阶段
       await summary(config, ctx);
 
-      await effect(config, `run git operations and hooks`, async () => {
+      await effect(config, `run git operations and related hooks`, async () => {
         // git系列
         await runHook(config.hooks?.["before:git"], ctx);
         // git 具体步骤
