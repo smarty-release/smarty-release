@@ -54,6 +54,7 @@ export default defineConfig({
             { text: "配置文件", link: "config-file" },
             { text: "变更日志", link: "changelog" },
             { text: "Hooks", link: "hooks" },
+            { text: "后续CI/CD 集成", link: "cicd" },
           ],
         },
       ],

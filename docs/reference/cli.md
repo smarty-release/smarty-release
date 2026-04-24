@@ -22,3 +22,13 @@ Options:
   -h, --help           Display this message
   -v, --version        Display version number
 ```
+
+<a id="changelog-command"></a>
+
+## changelog命令
+
+您可以通过该命令把参数传递给git-cliff。可以查阅git-cliff的[命令行参数](https://git-cliff.org/docs/usage/args)相关文档。
+
+::: warning
+该命令也会尊重`Smarty-Release`配置文件
+:::
