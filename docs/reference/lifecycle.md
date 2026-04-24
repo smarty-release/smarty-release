@@ -42,10 +42,22 @@ flowchart LR
     direction TB
     H10[before:git]
 
-    H10 --> H11[before:git.add] --> O[gitAdd] --> H12[after:git.add]
-    H12 --> H13[before:git.commit] --> P[gitCommit] --> H14[after:git.commit]
-    H14 --> H15[before:git.tag] --> Q[gitTag] --> H16[after:git.tag]
-    H16 --> H17[before:git.push] --> R[gitPush] --> H18[after:git.push]
+  subgraph git add
+    direction TB
+    H11[before:git.add] --> O[gitAdd] --> H12[after:git.add]
+  end
+  subgraph git commit
+    direction TB
+    H13[before:git.commit] --> P[gitCommit] --> H14[after:git.commit]
+  end
+  subgraph git tag
+    direction TB
+    H15[before:git.tag] --> Q[gitTag] --> H16[after:git.tag]
+  end
+  subgraph git push
+    direction TB
+    H17[before:git.push] --> R[gitPush] --> H18[after:git.push]
+  end
 
     H18 --> H19[after:git]
   end
@@ -62,4 +74,8 @@ flowchart LR
   H9 --> N
   N --> H10
   H19 --> S
+  H10 --> H11
+  H12 --> H13
+  H14 --> H15
+  H16 --> H17
 ```
