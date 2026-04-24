@@ -62,7 +62,11 @@ export default defineConfig({
         {
           text: "参考",
           base: "/reference/",
-          items: [{ text: "CLI", link: "cli" }],
+          items: [
+            { text: "生命周期", link: "lifecycle" },
+            { text: "CLI", link: "cli" },
+            { text: "配置", link: "configuration" },
+          ],
         },
       ],
     },

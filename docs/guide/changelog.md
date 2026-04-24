@@ -4,7 +4,7 @@
 
 ## 启用变更日志生成
 
-`Smarty-Release` 已内置 `git-cliff`，可通过[配置文件](./config-file/#writing-a-config-file)中的 `git.changelog` 进行配置。
+`Smarty-Release` 已内置 `git-cliff`，可通过[配置文件](/guide/config-file#writing-a-config-file)中的 `git.changelog` 进行配置。
 
 ```ts{6-13}
 import type { UserConfig } from "smarty-release";
