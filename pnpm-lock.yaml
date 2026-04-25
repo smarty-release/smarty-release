@@ -97,8 +97,8 @@ importers:
         specifier: ^2.0.0-alpha.17
         version: 2.0.0-alpha.17(@types/node@25.5.0)(change-case@5.4.4)(jiti@2.6.1)(postcss@8.5.10)(typescript@6.0.3)
       vitepress-mermaid-renderer:
-        specifier: ^1.1.21
-        version: 1.1.21(mermaid@11.14.0)(vue@3.5.33(typescript@6.0.3))
+        specifier: ^1.1.22
+        version: 1.1.22(mermaid@11.14.0)(vue@3.5.33(typescript@6.0.3))
       vitepress-plugin-group-icons:
         specifier: ^1.7.5
         version: 1.7.5(vite@7.3.1(@types/node@25.5.0)(jiti@2.6.1))
@@ -2427,8 +2427,8 @@ packages:
       yaml:
         optional: true
 
-  vitepress-mermaid-renderer@1.1.21:
-    resolution: {integrity: sha512-agXt+TOX/4/w99OviWHxwt3cSWoPCpdkCEfFffX8xYQvujlpEEpTL27hKFBUvY3vk6snUBzIe7Ww7fdmDXV0Qw==}
+  vitepress-mermaid-renderer@1.1.22:
+    resolution: {integrity: sha512-hvco1bllB4llzjT6JJ8KVXxPcWYnYwlKyRDY3W6vyYH8wmoDZF5lPTfDeDlx2M7/ZMJZX3zwgFvDdK10qpU6yg==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       mermaid: ^11.0.0
@@ -4662,7 +4662,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.6.1
 
-  vitepress-mermaid-renderer@1.1.21(mermaid@11.14.0)(vue@3.5.33(typescript@6.0.3)):
+  vitepress-mermaid-renderer@1.1.22(mermaid@11.14.0)(vue@3.5.33(typescript@6.0.3)):
     dependencies:
       mermaid: 11.14.0
       vue: 3.5.33(typescript@6.0.3)

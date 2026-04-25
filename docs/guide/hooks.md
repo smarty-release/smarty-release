@@ -105,3 +105,9 @@ export default defineConfig({
   },
 });
 ```
+
+## 上下文
+
+## 钩子输出
+
+默认`Smarty-Release`是不会输出钩子中的任何打印信息的。因为很多命令的输出太多内容会破坏
