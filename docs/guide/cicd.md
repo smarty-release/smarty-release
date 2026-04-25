@@ -2,10 +2,12 @@
 
 当你成功推送到远程仓库后,你需要下面的步骤
 
-1. 创建github的[release](https://docs.github.com/zh/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
-2. 推送到[npmjs](https://www.npmjs.com/)
+1. 在github上创建[发行版](https://docs.github.com/zh/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+2. 把构建产物推送到[npmjs](https://www.npmjs.com/)
 
-由于在推送时您已经打了tag,那么您可以检测到tag推送后执行一个流水线帮助您自动进行以上操作。
+您可以通过CI/CD来帮你自动完成上述的步骤。
+
+<a id="gitHub-actions"></a>
 
 ## GitHub Actions
 
@@ -52,7 +54,7 @@ jobs:
         run: pnpm publish --no-git-checks
 
       - name: Generate a latest changelog
-        run: pnpm exec smarty-release changelog -vv -o --latest
+        run: pnpm exec smarty-release changelog -vv latest.md -o --latest
         env:
           GITHUB_REPO: ${{ github.repository }}
 
@@ -61,15 +63,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          body_path: CHANGELOG.md
+          body_path: latest.md
           prerelease: ${{ contains(github.ref_name, '-') }}
 ```
 
-然后当您使用`Smarty-Release`推送后该工作流会自动运行,完成后续的工作。
+::: tip
+由于在推送时您已经打了[Git tag](https://git-scm.com/docs/git-tag),当你 push 一个以 `v` 开头的 Git tag 时，这个名称为 `Release` 的工作流就会被触发。
+:::
 
 ## 发布到npmjs
 
-npmjs原本是可以申请永久有效的token的,但是在2025-12-09起npm官方开始发[博客](https://github.blog/changelog/2025-12-09-npm-classic-tokens-revoked-session-based-auth-and-cli-token-management-now-available/)要删除所有的永久有效的token，并且已经无法再生成所有的永久有效的token，最长也只能生成90天的有效期。
+npmjs原本是可以申请永久有效的token的,但是在2025-12-09起npm官方开始发[博客](https://github.blog/changelog/2025-12-09-npm-classic-tokens-revoked-session-based-auth-and-cli-token-management-now-available/)要删除所有的永久有效的token，并且已经无法再生成永久有效的token，最长也只能90天的有效期。
 
 npm官方建议取而代之的是使用[可信发布](https://docs.npmjs.com/trusted-publishers)。
 可信发布功能允许您使用OpenID Connect (OIDC)身份验证直接从 CI/CD 工作流发布 npm 包，从而无需长期有效的 npm 令牌
@@ -84,7 +88,7 @@ npm官方建议取而代之的是使用[可信发布](https://docs.npmjs.com/tru
 
 ### 可能遇到的问题
 
-您可以会遇到因为`package.json`文件中缺少`"repository.url"`配置项而导致`npm publish`命令报错：
+在发布过程中，`npm publish`命令可能会报以下错误：
 
 ```
 Error verifying sigstore provenance bundle:
@@ -93,7 +97,7 @@ package.json: "repository.url" is "",
 expected to match "https://github.com/xxx/xxxx" from provenance
 ```
 
-因为可信发布会检测您是否正确配置了仓库。所以您需要在您的`package.json`添加以下配置：
+因为可信发布会检测您是否正确配置了仓库,所以您需要在您的`package.json`添加以下配置：
 
 ```json{5-8}
 {
@@ -109,33 +113,39 @@ expected to match "https://github.com/xxx/xxxx" from provenance
 
 ## 创建github的Release
 
-观察`.github/workflows/release.yml`示例,我们知道我们是通过[softprops/action-gh-release](https://github.com/softprops/action-gh-release)来创建Github的Release的。
+观察Github Action[工作流文件](#github-actions),这里是通过使用第三方 GitHub Action（eg. softprops/action-gh-release）来创建 GitHub Release。
 
-其中的`body_path`：字符串类型，用于指定一个文件路径，从该文件加载内容作为本次发布中“重要变更”的说明。
+关于[softprops/action-gh-release](https://github.com/softprops/action-gh-release)的用法可以去查看对应的文档用法。这里主要说明一下它是使用`Smarty-Release`的子命令`changelog`生成最后一个变更日志并写入到`latest.md`来作为Action的`body_path`参数。
 
-```yaml
-body_path: CHANGELOG.md
-```
-
-这里指定的是`CHANGELOG.md`，那么它是从哪里来的呢？
-
-```yaml{1-4}
-- name: Generate a latest changelog
-  run: pnpm exec smarty-release changelog -vv -o --latest
-  env:
-    GITHUB_REPO: ${{ github.repository }}
-
-- name: Github Release
-  uses: softprops/action-gh-release@v2
-  env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  with:
-    body_path: CHANGELOG.md
-    prerelease: ${{ contains(github.ref_name, '-') }}
-```
-
-它是`Smarty-Release`提供的一个子命令临时在当前仓库目录生成的,意思是只取最后一个最新版本的变更日志来作为Github Release的正文内容。
+简单理解：就是把你仓库中`CHANGELOG.md`中最新的版本变更日志单独拿出来。
 
 ::: tip
 关于子命令`changelog`的详细说明[参阅](/reference/cli#changelog-command)。
 :::
+
+### Github Release 预发布
+
+它的效果如下：
+
+![alt text](image.png)
+这里是通过`prerelease`选项来控制的。
+
+```yaml{3}
+with:
+  body_path: latest.md
+  prerelease: ${{ contains(github.ref_name, '-') }}
+```
+
+- github.ref_name ：当前触发工作流的 tag 名称
+- contains(a, b)：GitHub Actions [表达式](https://docs.github.com/zh/actions/reference/workflows-and-actions/expressions) 里的内置函数
+
+组合起来的意思就是判断 `tag` 里有没有 `-`。
+
+例子：
+
+| tag             | contains `-` | prerelease |
+| --------------- | ------------ | ---------- |
+| `v1.0.0`        | ❌           | false      |
+| `v1.0.1`        | ❌           | false      |
+| `v1.0.0-beta.1` | ✅           | true       |
+| `v2.0.0-alpha`  | ✅           | true       |

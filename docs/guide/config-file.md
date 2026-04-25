@@ -35,7 +35,7 @@
 - `git` - 一个对象,git相关的配置
 - `hooks` - 一个对象，配置钩子生命周期
 
-可以看到它的配置非常简单的,主要分为四个属性组成。
+可以看到它的配置非常简单的,由上面四个属性组成。
 
 <a id="writing-a-config-file"></a>
 
@@ -182,7 +182,8 @@ smarty-release --config ./path/to/config
 
 ## TypeScript 配置文件
 
-Deno 和 Bun 原生支持 TypeScript 配置文件；对于 Node.js，您必须jiti在项目中安装 2.2.0 或更高版本的可选开发依赖项（ESLint 不会自动安装此依赖项）：
+Deno 和 Bun 原生支持 TypeScript 配置文件；对于 Node.js，您必须jiti在项目中安装 2.2.0 或更高版本的可选开发依赖项（Smarty-Release 不会自动安装此依赖项）：
+
 ::: code-group
 
 ```sh [npm]

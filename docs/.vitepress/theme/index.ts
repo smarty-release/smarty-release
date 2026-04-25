@@ -9,18 +9,45 @@ import { createMermaidRenderer } from "vitepress-mermaid-renderer";
 export default {
   extends: DefaultTheme,
   Layout: () => {
-    const { isDark } = useData();
+    const { isDark, localeIndex } = useData();
 
-    const initMermaid = () => {
-      const mermaidRenderer = createMermaidRenderer({
-        theme: isDark.value ? "dark" : "forest",
+    let mermaidRenderer: ReturnType<typeof createMermaidRenderer>;
+
+    const applyToolbar = () => {
+      mermaidRenderer.setToolbar({
+        i18n: {
+          localeIndex: localeIndex.value,
+          tooltips: {
+            copyCode: "复制成功",
+          },
+          locales: {
+            root: {
+              tooltips: {
+                zoomIn: "放大",
+                zoomOut: "缩小",
+                resetView: "重置视图",
+                copyCode: "复制代码",
+                download: "下载图表",
+                toggleFullscreen: "切换全屏",
+              },
+            },
+          },
+        },
       });
     };
 
-    // initial mermaid setup
+    const initMermaid = () => {
+      mermaidRenderer = createMermaidRenderer({
+        theme: isDark.value ? "dark" : "forest",
+      });
+
+      applyToolbar();
+    };
+
+    // 初始渲染
     nextTick(() => initMermaid());
 
-    // on theme change, re-render mermaid charts
+    // 主题切换
     watch(
       () => isDark.value,
       () => {
@@ -28,8 +55,14 @@ export default {
       },
     );
 
+    // 语言切换（关键）
+    watch(localeIndex, () => {
+      applyToolbar();
+    });
+
     return h(DefaultTheme.Layout);
   },
+
   enhanceApp({ app }) {
     enhanceAppWithTabs(app);
   },

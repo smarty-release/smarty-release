@@ -46,19 +46,15 @@ git-cliff内置了许多非常流行的变更日志格式(规范)的模板:
 
 ## 自定义配置(config)
 
-`git-cliff`是需要通过生成`cliff.{toml,yaml}`格式的[配置文件](https://git-cliff.org/docs/usage/initializing)来自定义生成的变更日志的模板,然后把收集到的[上下文](https://git-cliff.org/docs/templating/context)数据,通过`tera`模板引擎来进行渲染生成最终的`CHANGELOG.md`。
+`git-cliff`是需要通过生成`cliff.toml`[配置文件](https://git-cliff.org/docs/usage/initializing)来自定义生成的变更日志的模板,然后把收集到的[上下文](https://git-cliff.org/docs/templating/context)数据,通过`tera`模板引擎来进行渲染生成最终的`CHANGELOG.md`。
 
-当默认模板无法满足你的需求时,你可以参考[模板语法](https://git-cliff.org/docs/templating/syntax),并在`cliff.toml(默认)`文件中去修改相关的配置。这样你就得再管理一个toml格式的配置文件。
+当默认模板无法满足你的需求时,你可以参考[模板语法](https://git-cliff.org/docs/templating/syntax),并在`cliff.toml`文件中去修改相关的配置,这样你就得再管理一个toml格式的配置文件。
 
-然后幸运的是`Smarty-Release`内部已经帮你处理该问题,你可以只在一个地方使用熟悉的js对象的方式完成所有的设置,而不用到处管理分散的配置文件而感到烦恼。
-
-所以您只需要在`git.changelog.config`进行设置即可。
+`Smarty-Release`内部已经帮你处理配置文件到处分散的问题，你可以只在`Smarty-Release`的配置文件中(e.g. `smarty-release.config.ts`)使用熟悉的js对象的方式在`git.changelog.config`进行设置即可。
 
 ### 配置文件的对照格式
 
-由于toml格式和js对象的表达方式有些许不同,所以这里给出一个简单的对照，
-
-这里就以git-cliff的[github.toml](https://github.com/orhun/git-cliff/blob/main/examples/github.toml)模板为例：
+由于toml格式和js对象的表达方式有些许不同,所以这里给出一个简单的对照，这里就以 git-cliff 的[github.toml](https://github.com/orhun/git-cliff/blob/main/examples/github.toml)模板为例：
 
 :::tabs variant:code
 
@@ -148,9 +144,9 @@ topo_order = false
 sort_commits = "newest"
 ```
 
-== js对象
+== smarty-release.config.ts
 
-```ts
+```ts{9-64}
 import type { UserConfig } from "smarty-release";
 
 export default {
