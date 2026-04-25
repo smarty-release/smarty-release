@@ -62,9 +62,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
           await runHook(config.hooks?.["before:changelog"], ctx);
         });
 
-        await effect(config, `generate changelog`, async () => {
-          await genChangelog(config, ctx);
-        });
+        await genChangelog(config, ctx);
 
         await effect(config, `run hook after:changelog`, async () => {
           await runHook(config.hooks?.["after:changelog"], ctx);

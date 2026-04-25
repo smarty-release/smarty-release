@@ -31,7 +31,7 @@ export async function runGitCliff(
 
   const bin = await getExePath();
 
-  await x(bin, args, {
+  const { stdout } = await x(bin, args, {
     nodeOptions: {
       stdio: "pipe",
       ...spawnOptions,
@@ -40,6 +40,7 @@ export async function runGitCliff(
   });
 
   await remove(cacheDir);
+  return stdout;
 }
 
 function filterArgs(args: string[]): string[] {

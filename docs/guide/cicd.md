@@ -13,6 +13,63 @@
 
 这里以GitHub Actions 工作流为例，在您的项目根目录下创建工作流文件（Workflow file）`.github/workflows/release.yml`(名称随意)
 
+:::tabs variant:code
+
+== npm
+
+```yaml
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # 使能够发布GitHub版本
+  id-token: write # OIDC 发布所必须的
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: npm run publish
+
+      - name: Generate a latest changelog
+        run: npx smarty-release changelog -vv latest.md -o --latest
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Github Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          body_path: latest.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+```
+
+== pnpm
+
 ```yaml
 name: Release
 
@@ -66,6 +123,8 @@ jobs:
           body_path: latest.md
           prerelease: ${{ contains(github.ref_name, '-') }}
 ```
+
+:::
 
 ::: tip
 由于在推送时您已经打了[Git tag](https://git-scm.com/docs/git-tag),当你 push 一个以 `v` 开头的 Git tag 时，这个名称为 `Release` 的工作流就会被触发。

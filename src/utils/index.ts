@@ -154,13 +154,21 @@ export function getCommandRawArgs(
 
 export function effect<T>(
   config: ResolvedConfig,
-  desc: string,
+  desc: string | null,
   fn: () => Promise<T>,
+  options: {
+    runInDryRun?: boolean;
+  } = {},
 ) {
-  if (config.dryRun) {
-    logger.info(chalk.yellow(`[dry-run] would ${desc}`));
+  const shouldSkip = config.dryRun && !options.runInDryRun;
 
+  if (desc) {
+    logger.info(chalk.yellow(`[dry-run] would ${desc}`));
+  }
+
+  if (shouldSkip) {
     return Promise.resolve(undefined as T);
   }
+
   return fn();
 }
