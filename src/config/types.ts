@@ -160,7 +160,7 @@ export type Hooks = Partial<Record<HookEvent, Hook>>;
 export type NormalizedHooks = Partial<Record<HookEvent, HookItems>>;
 
 /**
- * Options for release-pls.
+ * Options for smarty-release.
  */
 export interface UserConfig {
   /**
