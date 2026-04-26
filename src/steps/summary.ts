@@ -1,6 +1,6 @@
 import { confirm } from "@inquirer/prompts";
 import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
-import { gitReset, gitChangeset, blank } from "../utils/index.js";
+import { gitReset, gitChangeset, blank, effect } from "../utils/index.js";
 import { logger } from "../utils/index.js";
 import chalk from "chalk";
 
@@ -30,7 +30,9 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   });
 
   if (ok === false) {
-    await gitReset(ctx);
+    await effect(config, `run git reset`, async () => {
+      await gitReset(ctx); // 回滚
+    });
     ctx.cancel();
   }
 }

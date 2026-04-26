@@ -67,8 +67,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
         await effect(config, `run hook after:changelog`, async () => {
           await runHook(config.hooks?.["after:changelog"], ctx);
         });
-
-        await confirmChangelog(ctx);
+        await confirmChangelog(config, ctx);
       }
 
       // bump

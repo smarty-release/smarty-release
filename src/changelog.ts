@@ -12,7 +12,7 @@ export async function changelog(
   const config: ResolvedConfig = await resolveConfig(inlineConfig);
 
   // 验证git仓库状态
-  // await checkGitRepoStatus(config);
+  await checkGitRepoStatus(config);
 
   if (config.git.changelog === false) {
     logger.warn("Changelog generation is disabled.");
