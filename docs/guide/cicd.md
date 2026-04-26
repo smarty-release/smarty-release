@@ -186,7 +186,7 @@ expected to match "https://github.com/xxx/xxxx" from provenance
 
 它的效果如下：
 
-![alt text](image.png)
+![github预发布示意图](/github-prerelease.png)
 这里是通过`prerelease`选项来控制的。
 
 ```yaml{3}

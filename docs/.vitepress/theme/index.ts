@@ -17,9 +17,6 @@ export default {
       mermaidRenderer.setToolbar({
         i18n: {
           localeIndex: localeIndex.value,
-          tooltips: {
-            copyCode: "复制成功",
-          },
           locales: {
             root: {
               tooltips: {
@@ -27,6 +24,7 @@ export default {
                 zoomOut: "缩小",
                 resetView: "重置视图",
                 copyCode: "复制代码",
+                copyCodeCopied: "复制成功",
                 download: "下载图表",
                 toggleFullscreen: "切换全屏",
               },
