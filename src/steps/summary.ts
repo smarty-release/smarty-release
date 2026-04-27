@@ -29,12 +29,7 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
     default: false,
   });
 
-  if (ok === false) {
-    await effect(config, `run git reset`, async () => {
-      await gitReset(ctx); // 回滚
-    });
-    ctx.cancel();
-  }
+  if (ok === false) ctx.cancel();
 }
 
 function renderSection(title: string, fn: () => Promise<void> | void) {

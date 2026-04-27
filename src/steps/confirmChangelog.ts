@@ -11,11 +11,5 @@ export async function confirmChangelog(
     message: "Changelog generated. Does it look good?",
     default: true,
   });
-  if (normal === false) {
-    await effect(config, `run git reset`, async () => {
-      await gitReset(ctx); // 回滚
-    });
-
-    ctx.cancel();
-  }
+  if (normal === false) ctx.cancel();
 }
