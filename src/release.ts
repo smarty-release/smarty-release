@@ -46,7 +46,6 @@ export async function release(inlineConfig: InlineConfig = {}) {
       });
 
       // 选择tag
-
       await effect(config, `run hook before:selectTag`, async () => {
         await runHook(config.hooks?.["before:selectTag"], context);
       });

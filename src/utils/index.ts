@@ -21,8 +21,15 @@ export async function getGitHead(): Promise<string> {
 
 export async function gitReset(context: InternalReleaseContext) {
   if (!context.initialRef) return;
-  // 删除可能已经创建的tag
-  await x("git", ["tag", "-d", context.git.tagName]);
+
+  const tagName = context.git?.tagName;
+  console.log(tagName);
+
+  if (tagName) {
+    // 删除可能已经创建的tag
+    await x("git", ["tag", "-d", tagName]);
+  }
+
   await x("git", ["reset", "--hard", context.initialRef]);
 }
 
