@@ -159,14 +159,16 @@ export function effect<T>(
     runInDryRun?: boolean;
   } = {},
 ) {
-  const shouldSkip = config.dryRun && !options.runInDryRun;
+  const isDryRun = config.dryRun;
+  const shouldSkip = isDryRun && !options.runInDryRun;
 
-  if (desc) {
+  if (desc && isDryRun) {
     logger.info(chalk.yellow(`[dry-run] would ${desc}`));
   }
 
   if (shouldSkip) {
     return Promise.resolve(undefined as T);
   }
-  return Promise.resolve(fn());
+
+  return Promise.resolve().then(fn); // 捕获同步异常
 }
