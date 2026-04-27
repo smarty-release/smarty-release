@@ -23,7 +23,6 @@ export async function gitReset(context: InternalReleaseContext) {
   if (!context.initialRef) return;
 
   const tagName = context.git?.tagName;
-  console.log(tagName);
 
   if (tagName) {
     // 删除可能已经创建的tag
