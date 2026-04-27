@@ -1,7 +1,6 @@
 import { x } from "tinyexec";
 
 import type { HookItems, InternalReleaseContext } from "../config/types.ts";
-import type { ReleaseContext } from "../options.ts";
 import { logger, renderTemplate } from "./index.ts";
 
 export async function runHook(
@@ -10,7 +9,7 @@ export async function runHook(
 ) {
   if (!hook || !hookCtx) return;
 
-  const publicCtx = toPublicContext(hookCtx);
+  const { initialRef: _, ...publicCtx } = hookCtx;
 
   for (const hookItem of hook) {
     if (typeof hookItem === "string") {
@@ -28,9 +27,4 @@ export async function runHook(
       await hookItem(publicCtx);
     }
   }
-}
-
-function toPublicContext(ctx: InternalReleaseContext): ReleaseContext {
-  const { initialRef: _, ...rest } = ctx;
-  return rest;
 }
