@@ -1,3 +1,17 @@
+import hostedGitInfo from "hosted-git-info";
+import { readPackageJSON } from "pkg-types";
+import semver from "semver";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+import {
+  CancelledError,
+  GitBranchError,
+  GitRemoteParseError,
+  NotAllowedBranchError,
+} from "../errors.ts";
 import {
   getGitCurrentBranch,
   getGitHead,
@@ -5,21 +19,13 @@ import {
   logger,
   matchBranch,
 } from "../utils/index.js";
-import hostedGitInfo from "hosted-git-info";
-import semver from "semver";
-import { InternalReleaseContext, ResolvedConfig } from "../config/types.ts";
-import {
-  CancelledError,
-  GitBranchError,
-  GitRemoteParseError,
-  NotAllowedBranchError,
-} from "../errors.ts";
-import { readPackageJSON } from "pkg-types";
 
 export async function createContext(
   config: ResolvedConfig,
 ): Promise<InternalReleaseContext> {
-  const context: InternalReleaseContext = Object.create(null);
+  // const context: InternalReleaseContext = Object.create(null);
+
+  const context = createEmptyObject<InternalReleaseContext>();
 
   await collectGitContext(config, context);
   await collectRepoContext(context);
@@ -88,4 +94,8 @@ async function collectRepoContext(context: InternalReleaseContext) {
     owner: user,
     repository: project,
   };
+}
+
+function createEmptyObject<T>() {
+  return Object.create(null) as T;
 }

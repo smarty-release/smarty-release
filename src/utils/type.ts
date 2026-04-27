@@ -1,5 +1,6 @@
-import { NormalizedChangelogOptions, ResolvedConfig } from "../config/types.ts";
 import type { MergeDeep } from "type-fest";
+
+import type { NormalizedChangelogOptions, ResolvedConfig } from "../config/types.ts";
 
 export type ResolvedConfigWithChangelog = MergeDeep<
   ResolvedConfig,

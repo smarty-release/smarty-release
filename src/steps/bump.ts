@@ -1,7 +1,8 @@
-import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
-import { readPackageJSON, writePackageJSON } from "pkg-types";
 import { detect } from "package-manager-detector/detect";
+import { readPackageJSON, writePackageJSON } from "pkg-types";
 import { x } from "tinyexec";
+
+import type { InternalReleaseContext,ResolvedConfig } from "../config/types.ts";
 
 export async function bump(
   config: ResolvedConfig,

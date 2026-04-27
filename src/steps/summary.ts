@@ -1,8 +1,9 @@
 import { confirm } from "@inquirer/prompts";
-import { InternalReleaseContext } from "../config/types.ts";
-import { gitChangeset, blank } from "../utils/index.js";
-import { logger } from "../utils/index.js";
 import chalk from "chalk";
+
+import type { InternalReleaseContext } from "../config/types.ts";
+import { blank,gitChangeset } from "../utils/index.js";
+import { logger } from "../utils/index.js";
 
 export async function summary(context: InternalReleaseContext) {
   const summary = {

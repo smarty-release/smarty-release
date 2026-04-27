@@ -1,23 +1,23 @@
-import { withTimer } from "./utils/timer.ts";
-import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
 import { resolveConfig } from "./config/resolve.ts";
+import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
+import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import {
-  createContext,
-  selectVersion,
-  selectTag,
-  genChangelog,
   bump,
+  confirmChangelog,
+  createContext,
+  genChangelog,
   gitAdd,
   gitCommit,
-  summary,
-  gitTag,
   gitPush,
-  confirmChangelog,
+  gitTag,
+  selectTag,
+  selectVersion,
+  summary,
 } from "./steps/index.ts";
-import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
-import { hasChangelog } from "./utils/type.ts";
-import { effect, gitReset } from "./utils/index.ts";
 import { runHook } from "./utils/hook.ts";
+import { effect, gitReset } from "./utils/index.ts";
+import { withTimer } from "./utils/timer.ts";
+import { hasChangelog } from "./utils/type.ts";
 
 export async function release(inlineConfig: InlineConfig = {}) {
   // 处理参数

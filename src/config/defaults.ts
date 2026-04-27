@@ -1,5 +1,5 @@
-import type { InlineConfig } from "./types.ts";
 import { NAME } from "../constants.ts";
+import type { InlineConfig } from "./types.ts";
 
 const defaults = {
   increments: ["patch", "minor", "major"],

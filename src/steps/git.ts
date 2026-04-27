@@ -1,8 +1,9 @@
-import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
-import { renderTemplate } from "../utils/index.ts";
-import { x } from "tinyexec";
 import ora from "ora";
+import { x } from "tinyexec";
+
+import type { InternalReleaseContext,ResolvedConfig } from "../config/types.ts";
 import { GitCommitError, GitPushError, GitTagError } from "../errors.ts";
+import { renderTemplate } from "../utils/index.ts";
 
 export async function gitAdd() {
   await x("git", ["add", "."], {

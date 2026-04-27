@@ -1,5 +1,5 @@
 import { resolveConfig } from "./config/resolve.ts";
-import { ResolvedConfig, InlineConfig } from "./config/types.ts";
+import type { InlineConfig,ResolvedConfig } from "./config/types.ts";
 import { runGitCliff } from "./git-cliff.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { logger } from "./utils/index.ts";

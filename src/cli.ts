@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
-import { NAME } from "./constants.ts";
-import { logger, getCommandRawArgs } from "./utils/index.js";
-import pkg from "../package.json" with { type: "json" };
-import lt from "semver/functions/lt.js";
 import { cac } from "cac";
+import lt from "semver/functions/lt.js";
+
+import pkg from "../package.json" with { type: "json" };
+import type { InlineConfig } from "./config/types.ts";
+import { NAME } from "./constants.ts";
 import { CancelledError } from "./errors.ts";
-import { InlineConfig } from "./config/types.ts";
+import { getCommandRawArgs,logger } from "./utils/index.js";
 
 if (lt(process.version, "22.18.0")) {
   logger.warn(

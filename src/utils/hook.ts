@@ -1,6 +1,7 @@
 import { x } from "tinyexec";
-import { HookItems, InternalReleaseContext } from "../config/types.ts";
-import { ReleaseContext } from "../options.ts";
+
+import type { HookItems, InternalReleaseContext } from "../config/types.ts";
+import type { ReleaseContext } from "../options.ts";
 import { logger, renderTemplate } from "./index.ts";
 
 export async function runHook(

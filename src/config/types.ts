@@ -1,5 +1,6 @@
-import type { RequiredDeep, MergeDeep, OverrideProperties } from "type-fest";
-import {
+import type { MergeDeep, OverrideProperties,RequiredDeep } from "type-fest";
+
+import type {
   ChangelogOptions,
   Hook,
   HookEvent,

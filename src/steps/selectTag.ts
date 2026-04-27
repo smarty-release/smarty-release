@@ -1,6 +1,10 @@
 import { select } from "@inquirer/prompts";
 import { prerelease } from "semver";
-import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
 
 type Choice = {
   name: string;

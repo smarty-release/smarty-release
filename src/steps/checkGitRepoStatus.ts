@@ -1,4 +1,10 @@
-import { ResolvedConfig } from "../config/types.ts";
+import type { ResolvedConfig } from "../config/types.ts";
+import {
+  GitDirtyError,
+  GitNotInstalledError,
+  GitRemoteNotFoundError,
+  NotGitRepoError,
+} from "../errors.js";
 import {
   effect,
   getGitRemoteUrl,
@@ -6,12 +12,6 @@ import {
   isGitClean,
   isGitRepo,
 } from "../utils/index.ts";
-import {
-  NotGitRepoError,
-  GitDirtyError,
-  GitNotInstalledError,
-  GitRemoteNotFoundError,
-} from "../errors.js";
 
 export async function checkGitRepoStatus(config: ResolvedConfig) {
   // 检查是否安装过了git
@@ -28,6 +28,6 @@ export async function checkGitRepoStatus(config: ResolvedConfig) {
   });
 
   // 获取远程提交地址
-  const remoteUrl = getGitRemoteUrl();
+  const remoteUrl = await getGitRemoteUrl();
   if (!remoteUrl) throw new GitRemoteNotFoundError();
 }

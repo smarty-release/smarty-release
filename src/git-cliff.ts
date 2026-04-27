@@ -1,17 +1,19 @@
-import { arch as getArch, platform as getPlatform } from "os";
-import { createRequire } from "node:module";
-import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, resolve, join } from "node:path";
-import { parse, stringify } from "smol-toml";
+import type { SpawnOptions } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { NormalizedChangelogOptions } from "./config/types.ts";
-import { defu } from "./utils/index.ts";
-import { outputFile, remove } from "./utils/fs.ts";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join,resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { arch as getArch, platform as getPlatform } from "os";
+import { parse, stringify } from "smol-toml";
 import { x } from "tinyexec";
-import { SpawnOptions } from "node:child_process";
+
+import type { NormalizedChangelogOptions } from "./config/types.ts";
 import { NAME } from "./constants.ts";
+import { outputFile, remove } from "./utils/fs.ts";
+import { defu } from "./utils/index.ts";
 
 const require = createRequire(import.meta.url);
 // 当前脚本所在目录
@@ -29,7 +31,7 @@ export async function runGitCliff(
 
   args.push(...["--config", tmpConfigFile]);
 
-  const bin = await getExePath();
+  const bin = getExePath();
 
   const { stdout } = await x(bin, args, {
     nodeOptions: {
@@ -85,7 +87,7 @@ async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
   return tmpFile;
 }
 
-async function getExePath() {
+function getExePath() {
   const platform = getPlatform();
   const arch = getArch();
 

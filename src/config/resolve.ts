@@ -1,17 +1,18 @@
-import { NAME } from "../constants.ts";
-import { defu } from "../utils/index.ts";
-import { loadConfig } from "./index.ts";
-import defaultsConfig from "./defaults.ts";
 import { parse } from "valibot";
-import type { InlineConfig, ResolvedConfig, NormalizedHooks } from "./types.ts";
+
+import { NAME } from "../constants.ts";
 import type {
   ChangelogOptions,
-  UserConfig,
-  Hooks,
-  HookEvent,
   Hook,
+  HookEvent,
+  Hooks,
+  UserConfig,
 } from "../options.ts";
+import { defu } from "../utils/index.ts";
 import { inlineConfigSchema } from "./configSchema.ts";
+import defaultsConfig from "./defaults.ts";
+import { loadConfig } from "./index.ts";
+import type { InlineConfig, NormalizedHooks, ResolvedConfig } from "./types.ts";
 
 type Args = NonNullable<ChangelogOptions["args"]>;
 

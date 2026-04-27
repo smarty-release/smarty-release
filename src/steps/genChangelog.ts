@@ -1,10 +1,11 @@
-import { runGitCliff } from "../git-cliff.ts";
-import { InternalReleaseContext } from "../config/types.ts";
-import { effect, logger, renderTemplate } from "../utils/index.js";
-import { ResolvedConfigWithChangelog } from "../utils/type.ts";
-import ora from "ora";
-import { GenerateChangelogError } from "../errors.ts";
 import mri from "mri";
+import ora from "ora";
+
+import type { InternalReleaseContext } from "../config/types.ts";
+import { GenerateChangelogError } from "../errors.ts";
+import { runGitCliff } from "../git-cliff.ts";
+import { effect, logger, renderTemplate } from "../utils/index.js";
+import type { ResolvedConfigWithChangelog } from "../utils/type.ts";
 
 export async function genChangelog(
   config: ResolvedConfigWithChangelog,
@@ -21,7 +22,7 @@ export async function genChangelog(
     await effect(
       config,
       null,
-      async () => {
+      () => {
         config.git.changelog.args = removeFlag(
           config.git.changelog.args,
           OUTPUT_FLAGS,
@@ -50,7 +51,7 @@ export async function genChangelog(
     await effect(
       config,
       `generate changelog`,
-      async () => {
+      () => {
         logger.box(context.git.changelog);
       },
       {

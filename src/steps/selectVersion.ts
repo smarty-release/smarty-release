@@ -1,6 +1,7 @@
-import { select, input } from "@inquirer/prompts";
-import { inc, valid, prerelease, gt } from "semver";
-import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
+import { input,select } from "@inquirer/prompts";
+import { gt,inc, prerelease, valid } from "semver";
+
+import type { InternalReleaseContext,ResolvedConfig } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.ts";
 
 export async function selectVersion(

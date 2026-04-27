@@ -1,5 +1,6 @@
-import { logger } from "./index.ts";
 import chalk from "chalk";
+
+import { logger } from "./index.ts";
 export async function withTimer<T>(fn: () => Promise<T>): Promise<T> {
   const start = performance.now();
   const result = await fn();

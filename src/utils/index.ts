@@ -1,10 +1,14 @@
-import { x } from "tinyexec";
-import { createConsola } from "consola";
-import { NAME } from "../constants.ts";
-import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
-import { createDefu } from "defu";
-import type { Get } from "type-fest";
 import chalk from "chalk";
+import { createConsola } from "consola";
+import { createDefu } from "defu";
+import { x } from "tinyexec";
+import type { Get } from "type-fest";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+import { NAME } from "../constants.ts";
 
 type RequireBranch = Get<ResolvedConfig, "git.requireBranch">;
 
@@ -79,7 +83,9 @@ export function renderTemplate(
   template: string,
   context: InternalReleaseContext,
 ): string {
-  if (!template || typeof template !== "string") return template;
+  if (typeof template !== "string") {
+    throw new TypeError("Template must be a string");
+  }
 
   return template.replace(/\$\{([^}]+)\}/g, (_, expr: string) => {
     const value = expr.split(".").reduce<unknown>((acc, key) => {
@@ -92,6 +98,17 @@ export function renderTemplate(
     if (value == null) {
       throw new Error(`Template variable "${expr}" is not defined`);
     }
+
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      typeof value !== "boolean"
+    ) {
+      throw new TypeError(
+        `Template variable "${expr}" must be a primitive value`,
+      );
+    }
+
     return String(value);
   });
 }
@@ -137,7 +154,7 @@ export function getCommandRawArgs(
 export function effect<T>(
   config: ResolvedConfig,
   desc: string | null,
-  fn: () => Promise<T>,
+  fn: () => T | Promise<T>,
   options: {
     runInDryRun?: boolean;
   } = {},
@@ -151,6 +168,5 @@ export function effect<T>(
   if (shouldSkip) {
     return Promise.resolve(undefined as T);
   }
-
-  return fn();
+  return Promise.resolve(fn());
 }

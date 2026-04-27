@@ -1,5 +1,5 @@
-import type { ReleaseType } from "semver";
 import type { ConsolaInstance } from "consola";
+import type { ReleaseType } from "semver";
 
 export type ChangelogTemplate =
   | "azure-devops-keepachangelog"
