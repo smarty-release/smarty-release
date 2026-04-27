@@ -3,17 +3,15 @@ import { defu } from "../utils/index.ts";
 import { loadConfig } from "./index.ts";
 import defaultsConfig from "./defaults.ts";
 import { parse } from "valibot";
+import type { InlineConfig, ResolvedConfig, NormalizedHooks } from "./types.ts";
 import type {
   ChangelogOptions,
-  InlineConfig,
-  ResolvedConfig,
   UserConfig,
   Hooks,
   HookEvent,
   Hook,
-  NormalizedHooks,
-} from "./types.ts";
-import { inlineConfigSchema } from "./inlineConfigSchema.ts";
+} from "../options.ts";
+import { inlineConfigSchema } from "./configSchema.ts";
 
 type Args = NonNullable<ChangelogOptions["args"]>;
 
@@ -23,7 +21,7 @@ export async function resolveConfig(
   // 加载配置
   const fileConfig = await loadConfig<UserConfig>(NAME, inlineConfig.config);
 
-  // Merge options
+  // 合并选项
   const merged = defu(inlineConfig, fileConfig, defaultsConfig);
 
   // 验证参数合法性

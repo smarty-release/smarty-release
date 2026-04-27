@@ -7,7 +7,7 @@ import {
 } from "../utils/index.js";
 import hostedGitInfo from "hosted-git-info";
 import semver from "semver";
-import { ReleaseContext, ResolvedConfig } from "../config/types.ts";
+import { InternalReleaseContext, ResolvedConfig } from "../config/types.ts";
 import {
   CancelledError,
   GitBranchError,
@@ -18,18 +18,17 @@ import { readPackageJSON } from "pkg-types";
 
 export async function createContext(
   config: ResolvedConfig,
-): Promise<ReleaseContext> {
-  const ctx: ReleaseContext = Object.create(null);
+): Promise<InternalReleaseContext> {
+  const context: InternalReleaseContext = Object.create(null);
 
-  await collectGitContext(config, ctx);
-  await collectRepoContext(config, ctx);
-  await collectPackageContext(config, ctx);
+  await collectGitContext(config, context);
+  await collectRepoContext(context);
+  await collectPackageContext(config, context);
 
-  const initialRef = await getGitHead();
-  ctx._initialRef = initialRef;
+  context.initialRef = await getGitHead();
 
   return {
-    ...ctx,
+    ...context,
     logger,
     cancel(message?: string) {
       throw new CancelledError(message);
@@ -39,7 +38,7 @@ export async function createContext(
 
 async function collectPackageContext(
   config: ResolvedConfig,
-  ctx: ReleaseContext,
+  context: InternalReleaseContext,
 ) {
   const pkg = await readPackageJSON(config.cwd);
 
@@ -52,28 +51,31 @@ async function collectPackageContext(
   }
 
   // 赋值给上下文
-  ctx.name = pkg.name;
-  ctx.latestVersion = pkg.version;
+  context.name = pkg.name;
+  context.latestVersion = pkg.version;
 }
 
-async function collectGitContext(config: ResolvedConfig, ctx: ReleaseContext) {
+async function collectGitContext(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
   const { requireBranch } = config.git;
 
   try {
-    ctx.branchName = await getGitCurrentBranch();
+    context.branchName = await getGitCurrentBranch();
   } catch (err) {
     throw new GitBranchError();
   }
 
   if (!requireBranch) return; // 不需要校验分支 -> 直接跳过 git IO
-  if (!matchBranch(requireBranch, ctx.branchName)) {
+  if (!matchBranch(requireBranch, context.branchName)) {
     throw new NotAllowedBranchError(
-      `Release is only allowed on ${String(requireBranch)}, current: ${ctx.branchName}`,
+      `Release is only allowed on ${String(requireBranch)}, current: ${context.branchName}`,
     );
   }
 }
 
-async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
+async function collectRepoContext(context: InternalReleaseContext) {
   const remoteUrl = await getGitRemoteUrl();
 
   const info = hostedGitInfo.fromUrl(remoteUrl);
@@ -81,8 +83,8 @@ async function collectRepoContext(config: ResolvedConfig, ctx: ReleaseContext) {
   if (!info) throw new GitRemoteParseError();
   const { user, project } = info;
   // 赋值给上下文
-  ctx.repo = {
-    ...ctx.repo,
+  context.repo = {
+    ...context.repo,
     owner: user,
     repository: project,
   };

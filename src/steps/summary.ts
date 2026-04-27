@@ -1,17 +1,17 @@
 import { confirm } from "@inquirer/prompts";
-import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
-import { gitReset, gitChangeset, blank, effect } from "../utils/index.js";
+import { InternalReleaseContext } from "../config/types.ts";
+import { gitChangeset, blank } from "../utils/index.js";
 import { logger } from "../utils/index.js";
 import chalk from "chalk";
 
-export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
+export async function summary(context: InternalReleaseContext) {
   const summary = {
-    Version: ctx.version,
-    "Npm Dist Tag": ctx.tag,
-    Owner: ctx.repo.owner,
-    Repository: ctx.repo.repository,
-    Branch: ctx.branchName,
-    "Git Tag": ctx.git.tagName,
+    Version: context.version,
+    "Npm Dist Tag": context.tag,
+    Owner: context.repo.owner,
+    Repository: context.repo.repository,
+    Branch: context.branchName,
+    "Git Tag": context.git.tagName,
   };
 
   await renderSection("Summary:", () => {
@@ -25,11 +25,11 @@ export async function summary(config: ResolvedConfig, ctx: ReleaseContext) {
   blank();
 
   const ok = await confirm({
-    message: `Releasing v${ctx.version} on ${ctx.tag}. Confirm?`,
+    message: `Releasing v${context.version} on ${context.tag}. Confirm?`,
     default: false,
   });
 
-  if (ok === false) ctx.cancel();
+  if (ok === false) context.cancel();
 }
 
 function renderSection(title: string, fn: () => Promise<void> | void) {

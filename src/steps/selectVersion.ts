@@ -1,26 +1,26 @@
 import { select, input } from "@inquirer/prompts";
 import { inc, valid, prerelease, gt } from "semver";
-import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
+import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
 import { renderTemplate } from "../utils/index.ts";
 
 export async function selectVersion(
   config: ResolvedConfig,
-  ctx: ReleaseContext,
+  context: InternalReleaseContext,
 ) {
   let targetVersion;
-  const isPrerelease = prerelease(ctx.latestVersion);
+  const isPrerelease = prerelease(context.latestVersion);
 
   // 构建版本选项
   const choices = config.increments.map((type) => ({
-    name: `${type} (${inc(ctx.latestVersion, type)})`,
-    value: inc(ctx.latestVersion, type),
+    name: `${type} (${inc(context.latestVersion, type)})`,
+    value: inc(context.latestVersion, type),
   }));
 
   // 如果当前是预发布版本，插入 prerelease 选项
   if (isPrerelease) {
     choices.unshift({
-      name: `prerelease (${inc(ctx.latestVersion, "prerelease")})`,
-      value: inc(ctx.latestVersion, "prerelease"),
+      name: `prerelease (${inc(context.latestVersion, "prerelease")})`,
+      value: inc(context.latestVersion, "prerelease"),
     });
   }
 
@@ -35,7 +35,7 @@ export async function selectVersion(
     choices,
   });
 
-  if (!release) ctx.cancel();
+  if (!release) context.cancel();
 
   targetVersion = release;
 
@@ -43,7 +43,7 @@ export async function selectVersion(
   if (release === "custom") {
     const customVersion = await input({
       message: "Input custom version",
-      default: ctx.latestVersion,
+      default: context.latestVersion,
       validate(value) {
         const v = value.trim();
 
@@ -51,8 +51,8 @@ export async function selectVersion(
           return "Invalid semver version";
         }
 
-        if (!gt(v, ctx.latestVersion)) {
-          return `Version must be greater than current version: ${ctx.latestVersion}`;
+        if (!gt(v, context.latestVersion)) {
+          return `Version must be greater than current version: ${context.latestVersion}`;
         }
 
         return true;
@@ -63,10 +63,10 @@ export async function selectVersion(
   }
 
   // 赋值给上下文
-  ctx.version = targetVersion;
-  ctx.git = {
-    ...ctx.git,
-    tagName: renderTemplate(config.git.tagName, ctx),
-    commitMessage: renderTemplate(config.git.commitMessage, ctx),
+  context.version = targetVersion;
+  context.git = {
+    ...context.git,
+    tagName: renderTemplate(config.git.tagName, context),
+    commitMessage: renderTemplate(config.git.commitMessage, context),
   };
 }

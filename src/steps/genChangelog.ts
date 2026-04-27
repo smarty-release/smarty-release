@@ -1,5 +1,5 @@
 import { runGitCliff } from "../git-cliff.ts";
-import { ReleaseContext } from "../config/types.ts";
+import { InternalReleaseContext } from "../config/types.ts";
 import { effect, logger, renderTemplate } from "../utils/index.js";
 import { ResolvedConfigWithChangelog } from "../utils/type.ts";
 import ora from "ora";
@@ -8,9 +8,9 @@ import mri from "mri";
 
 export async function genChangelog(
   config: ResolvedConfigWithChangelog,
-  ctx: ReleaseContext,
+  context: InternalReleaseContext,
 ) {
-  config.git.changelog.args = renderArgs(config.git.changelog.args, ctx);
+  config.git.changelog.args = renderArgs(config.git.changelog.args, context);
 
   const spinner = ora("Generating changelog, please wait…").start();
 
@@ -41,17 +41,17 @@ export async function genChangelog(
     if (hasOutput) {
       const changelogFile = cli.getFlagValue<string | boolean>(OUTPUT_FLAGS);
 
-      ctx.git.changelog =
+      context.git.changelog =
         typeof changelogFile === "string" ? changelogFile : "CHANGELOG.md";
     } else {
-      ctx.git.changelog = stdout;
+      context.git.changelog = stdout;
     }
 
     await effect(
       config,
       `generate changelog`,
       async () => {
-        logger.box(ctx.git.changelog);
+        logger.box(context.git.changelog);
       },
       {
         runInDryRun: true,
@@ -63,8 +63,8 @@ export async function genChangelog(
   spinner.stop();
 }
 
-function renderArgs(args: string[], ctx: ReleaseContext) {
-  return args.map((v) => renderTemplate(v, ctx));
+function renderArgs(args: string[], context: InternalReleaseContext) {
+  return args.map((v) => renderTemplate(v, context));
 }
 
 type FlagName = string | readonly string[];

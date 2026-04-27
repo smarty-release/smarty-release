@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 import { lilconfig } from "lilconfig";
 import type { Loader, LilconfigResult } from "lilconfig";
-export * from "./types.ts";
 
 type LoaderReturn = Promise<Awaited<ReturnType<Loader>>>;
 type LoaderFilepath = Parameters<Loader>[0];

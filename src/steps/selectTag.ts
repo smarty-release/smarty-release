@@ -1,6 +1,6 @@
 import { select } from "@inquirer/prompts";
 import { prerelease } from "semver";
-import { ResolvedConfig, ReleaseContext } from "../config/types.ts";
+import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
 
 type Choice = {
   name: string;
@@ -8,8 +8,11 @@ type Choice = {
   disabled?: boolean;
 };
 
-export async function selectTag(config: ResolvedConfig, ctx: ReleaseContext) {
-  const isPrerelease = Boolean(prerelease(ctx.version));
+export async function selectTag(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  const isPrerelease = Boolean(prerelease(context.version));
 
   const enabled: Choice[] = [];
   const disabled: Choice[] = [];
@@ -30,7 +33,7 @@ export async function selectTag(config: ResolvedConfig, ctx: ReleaseContext) {
     choices: choices,
   });
 
-  if (!tag) ctx.cancel();
+  if (!tag) context.cancel();
 
-  ctx.tag = tag;
+  context.tag = tag;
 }

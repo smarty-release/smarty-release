@@ -1,7 +1,7 @@
 import { x } from "tinyexec";
 import { createConsola } from "consola";
 import { NAME } from "../constants.ts";
-import { HookItems, ReleaseContext, ResolvedConfig } from "../config/types.ts";
+import { ResolvedConfig, InternalReleaseContext } from "../config/types.ts";
 import { createDefu } from "defu";
 import type { Get } from "type-fest";
 import chalk from "chalk";
@@ -15,11 +15,11 @@ export async function getGitHead(): Promise<string> {
   return stdout.trim();
 }
 
-export async function gitReset(ctx: ReleaseContext) {
-  if (!ctx._initialRef) return;
+export async function gitReset(context: InternalReleaseContext) {
+  if (!context.initialRef) return;
   // 删除可能已经创建的tag
-  await x("git", ["tag", "-d", ctx.git.tagName]);
-  await x("git", ["reset", "--hard", ctx._initialRef]);
+  await x("git", ["tag", "-d", context.git.tagName]);
+  await x("git", ["reset", "--hard", context.initialRef]);
 }
 
 export const logger = createConsola({
@@ -75,7 +75,10 @@ export async function getGitRemoteUrl(): Promise<string> {
   }
 }
 
-export function renderTemplate(template: string, ctx: ReleaseContext): string {
+export function renderTemplate(
+  template: string,
+  context: InternalReleaseContext,
+): string {
   if (!template || typeof template !== "string") return template;
 
   return template.replace(/\$\{([^}]+)\}/g, (_, expr: string) => {
@@ -84,7 +87,7 @@ export function renderTemplate(template: string, ctx: ReleaseContext): string {
         return (acc as Record<string, unknown>)[key];
       }
       return undefined;
-    }, ctx);
+    }, context);
 
     if (value == null) {
       throw new Error(`Template variable "${expr}" is not defined`);
@@ -120,27 +123,6 @@ export async function getGitCurrentBranch(): Promise<string> {
     throwOnError: true,
   });
   return stdout.trim();
-}
-
-export async function runHook(hook?: HookItems, hookCtx?: ReleaseContext) {
-  if (!hook || !hookCtx) return;
-
-  for (const hookItem of hook) {
-    if (typeof hookItem === "string") {
-      const cmd = renderTemplate(hookItem, hookCtx);
-      logger.info(`Running hook: ${cmd}`);
-      await x(cmd, [], {
-        nodeOptions: {
-          shell: true,
-          stdio: "inherit",
-        },
-      });
-    } else {
-      const name = hookItem.name || "anonymous";
-      logger.info(`Running hook: ${name}`);
-      await hookItem(hookCtx);
-    }
-  }
 }
 
 export function getCommandRawArgs(
