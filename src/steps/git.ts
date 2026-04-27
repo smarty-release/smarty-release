@@ -1,7 +1,10 @@
 import ora from "ora";
 import { x } from "tinyexec";
 
-import type { InternalReleaseContext,ResolvedConfig } from "../config/types.ts";
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
 import { GitCommitError, GitPushError, GitTagError } from "../errors.ts";
 import { renderTemplate } from "../utils/index.ts";
 
@@ -21,28 +24,22 @@ export async function gitCommit(
     await x("git", ["commit", ...config.git.commitArgs, "-m", message], {
       throwOnError: true,
     });
-  } catch (error) {
+  } catch {
     throw new GitCommitError();
   }
 }
 
-export async function gitTag(
-  config: ResolvedConfig,
-  context: InternalReleaseContext,
-) {
+export async function gitTag(context: InternalReleaseContext) {
   try {
     await x("git", ["tag", "-f", context.git.tagName], {
       throwOnError: true,
     });
-  } catch (error) {
+  } catch {
     throw new GitTagError();
   }
 }
 
-export async function gitPush(
-  config: ResolvedConfig,
-  context: InternalReleaseContext,
-) {
+export async function gitPush(context: InternalReleaseContext) {
   const spinner = ora("Releasing…").start();
 
   try {
@@ -54,7 +51,7 @@ export async function gitPush(
       },
     );
     spinner.stop();
-  } catch (error) {
+  } catch {
     throw new GitPushError();
   }
 }

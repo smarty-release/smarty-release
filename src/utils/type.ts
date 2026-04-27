@@ -1,6 +1,9 @@
 import type { MergeDeep } from "type-fest";
 
-import type { NormalizedChangelogOptions, ResolvedConfig } from "../config/types.ts";
+import type {
+  NormalizedChangelogOptions,
+  ResolvedConfig,
+} from "../config/types.ts";
 
 export type ResolvedConfigWithChangelog = MergeDeep<
   ResolvedConfig,
@@ -16,3 +19,4 @@ export function hasChangelog(
 ): config is ResolvedConfigWithChangelog {
   return config.git.changelog !== false;
 }
+export type PickProp<T, K extends keyof T> = T[K];

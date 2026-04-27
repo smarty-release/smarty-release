@@ -31,6 +31,6 @@ export async function runHook(
 }
 
 function toPublicContext(ctx: InternalReleaseContext): ReleaseContext {
-  const { initialRef, ...rest } = ctx;
+  const { initialRef: _, ...rest } = ctx;
   return rest;
 }

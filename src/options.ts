@@ -142,8 +142,12 @@ export interface ReleaseContext {
     tagName: string;
   };
   repo: {
+    remote: string;
+    protocol: string;
+    host: string;
     owner: string;
     repository: string;
+    project: string;
   };
   logger: ConsolaInstance;
   cancel(message?: string): never;

@@ -58,7 +58,7 @@ export async function genChangelog(
         runInDryRun: true,
       },
     );
-  } catch (error) {
+  } catch {
     throw new GenerateChangelogError();
   }
   spinner.stop();

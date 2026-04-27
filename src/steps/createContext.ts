@@ -69,7 +69,7 @@ async function collectGitContext(
 
   try {
     context.branchName = await getGitCurrentBranch();
-  } catch (err) {
+  } catch {
     throw new GitBranchError();
   }
 
@@ -84,15 +84,19 @@ async function collectGitContext(
 async function collectRepoContext(context: InternalReleaseContext) {
   const remoteUrl = await getGitRemoteUrl();
 
-  const info = hostedGitInfo.fromUrl(remoteUrl);
+  const gitHost = hostedGitInfo.fromUrl(remoteUrl);
 
-  if (!info) throw new GitRemoteParseError();
-  const { user, project } = info;
+  if (!gitHost) throw new GitRemoteParseError();
+
   // 赋值给上下文
   context.repo = {
     ...context.repo,
-    owner: user,
-    repository: project,
+    remote: gitHost.https(),
+    protocol: gitHost.default === "ssh" ? "ssh" : "https",
+    host: gitHost.domain,
+    owner: gitHost.user,
+    repository: gitHost.project,
+    project: gitHost.project,
   };
 }
 

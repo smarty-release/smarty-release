@@ -34,7 +34,7 @@
     "templates"
   ],
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . --cache",
     "lint:fix": "pnpm lint --fix",
     "build": "tsdown",
     "docs:build": "vitepress build docs",

@@ -1,5 +1,5 @@
 import { resolveConfig } from "./config/resolve.ts";
-import type { InlineConfig,ResolvedConfig } from "./config/types.ts";
+import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
 import { runGitCliff } from "./git-cliff.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import { logger } from "./utils/index.ts";
@@ -22,5 +22,5 @@ export async function changelog(
   config.git.changelog.args = args;
 
   // 开始调用git-cliff
-  // await runGitCliff(config.git.changelog);
+  await runGitCliff(config.git.changelog);
 }

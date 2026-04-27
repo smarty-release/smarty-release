@@ -52,13 +52,15 @@ export default defineConfig([
       },
     },
     rules: {
-      // 自定义
-      "no-var": "off", //禁止使用var
-      // 临时关闭未使用变量报错
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": "off",
-      // 临时关闭未使用私有变量报错的问题
-      "no-unused-private-class-members": "off",
+      "no-var": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+        },
+      ],
+      "no-unused-private-class-members": "error",
     },
   },
 ]);
