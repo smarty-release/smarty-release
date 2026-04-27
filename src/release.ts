@@ -104,11 +104,11 @@ export async function release(inlineConfig: InlineConfig = {}) {
         await runHook(config.hooks?.["after:git.commit"], context);
 
         await runHook(config.hooks?.["before:git.tag"], context);
-        await gitTag(config, context);
+        await gitTag(context);
         await runHook(config.hooks?.["after:git.tag"], context);
 
         await runHook(config.hooks?.["before:git.push"], context);
-        await gitPush(config, context);
+        await gitPush(context);
         await runHook(config.hooks?.["after:git.push"], context);
 
         await runHook(config.hooks?.["after:git"], context);
