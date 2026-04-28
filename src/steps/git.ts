@@ -1,4 +1,3 @@
-import ora from "ora";
 import { x } from "tinyexec";
 
 import type {
@@ -40,8 +39,6 @@ export async function gitTag(context: InternalReleaseContext) {
 }
 
 export async function gitPush(context: InternalReleaseContext) {
-  const spinner = ora("Releasing…").start();
-
   try {
     await x(
       "git",
@@ -50,7 +47,6 @@ export async function gitPush(context: InternalReleaseContext) {
         throwOnError: true,
       },
     );
-    spinner.stop();
   } catch {
     throw new GitPushError();
   }
