@@ -1,4 +1,4 @@
-import { Listr } from "listr2";
+import { createSpinner } from "nanospinner";
 
 import { resolveConfig } from "./config/resolve.ts";
 import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
@@ -97,14 +97,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
           );
         });
 
-        await new Listr([
-          {
-            title: "Generating changelog, please wait…",
-            task: async () => {
-              await genChangelog(config, context);
-            },
-          },
-        ]).run();
+        await genChangelog(config, context);
 
         await effect(config, `run hook ${HOOKS.AFTER_CHANGELOG}`, async () => {
           await runHook(
@@ -145,6 +138,8 @@ export async function release(inlineConfig: InlineConfig = {}) {
       await summary(context);
 
       await effect(config, `run git operations and related hooks`, async () => {
+        const spinner = createSpinner("Releasing…").start();
+
         // git系列
         await runHook(
           HOOKS.BEFORE_GIT,
@@ -211,6 +206,7 @@ export async function release(inlineConfig: InlineConfig = {}) {
           config.hooks?.[HOOKS.AFTER_RELEASE],
           context,
         );
+        spinner.stop();
       });
     });
   } catch (err) {

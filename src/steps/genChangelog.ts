@@ -1,4 +1,5 @@
 import mri from "mri";
+import { createSpinner } from "nanospinner";
 
 import type { InternalReleaseContext } from "../config/types.ts";
 import { OUTPUT_FLAGS } from "../constants.ts";
@@ -12,7 +13,7 @@ export async function genChangelog(
   context: InternalReleaseContext,
 ) {
   config.git.changelog.args = renderArgs(config.git.changelog.args, context);
-
+  const spinner = createSpinner("Generating changelog, please wait…").start();
   try {
     // dry-run模式下永远都把输出选项都移除掉
     await runInDryRun(config, () => {
@@ -44,6 +45,7 @@ export async function genChangelog(
   } catch {
     throw new GenerateChangelogError();
   }
+  spinner.stop();
 }
 
 function renderArgs(args: string[], context: InternalReleaseContext) {
