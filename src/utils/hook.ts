@@ -14,7 +14,7 @@ export async function runHook(
 
   const tasks = new Listr(
     {
-      title: hookName,
+      title: `${hookName} (${hooks.length} hooks)`,
       task: () =>
         new Listr(
           hooks.map((hook, index) => {

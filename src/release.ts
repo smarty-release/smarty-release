@@ -2,6 +2,7 @@ import { Listr } from "listr2";
 
 import { resolveConfig } from "./config/resolve.ts";
 import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
+import { HOOKS } from "./constants.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
 import {
   bump,
@@ -32,54 +33,66 @@ export async function release(inlineConfig: InlineConfig = {}) {
     await withTimer(async () => {
       // 流程开始
 
-      await effect(config, `run hook before:init`, async () => {
-        await runHook("before:init", config.hooks?.["before:init"], context);
+      await effect(config, `run hook ${HOOKS.BEFORE_INIT}`, async () => {
+        await runHook(
+          HOOKS.BEFORE_INIT,
+          config.hooks?.[HOOKS.BEFORE_INIT],
+          context,
+        );
       });
 
       // 选择版本
-      await effect(config, `run hook before:selectVersion`, async () => {
-        await runHook(
-          "before:selectVersion",
-          config.hooks?.["before:selectVersion"],
-          context,
-        );
-      });
+      await effect(
+        config,
+        `run hook ${HOOKS.BEFORE_SELECT_VERSION}`,
+        async () => {
+          await runHook(
+            HOOKS.BEFORE_SELECT_VERSION,
+            config.hooks?.[HOOKS.BEFORE_SELECT_VERSION],
+            context,
+          );
+        },
+      );
 
       await selectVersion(config, context);
 
-      await effect(config, `run hook after:selectVersion`, async () => {
-        await runHook(
-          "after:selectVersion",
-          config.hooks?.["after:selectVersion"],
-          context,
-        );
-      });
+      await effect(
+        config,
+        `run hook ${HOOKS.AFTER_SELECT_VERSION}`,
+        async () => {
+          await runHook(
+            HOOKS.AFTER_SELECT_VERSION,
+            config.hooks?.[HOOKS.AFTER_SELECT_VERSION],
+            context,
+          );
+        },
+      );
 
       // 选择tag
-      await effect(config, `run hook before:selectTag`, async () => {
+      await effect(config, `run hook ${HOOKS.BEFORE_SELECT_TAG}`, async () => {
         await runHook(
-          "before:selectTag",
-          config.hooks?.["before:selectTag"],
+          HOOKS.BEFORE_SELECT_TAG,
+          config.hooks?.[HOOKS.BEFORE_SELECT_TAG],
           context,
         );
       });
 
       await selectTag(config, context);
 
-      await effect(config, `run hook after:selectTag`, async () => {
+      await effect(config, `run hook ${HOOKS.AFTER_SELECT_TAG}`, async () => {
         await runHook(
-          "after:selectTag",
-          config.hooks?.["after:selectTag"],
+          HOOKS.AFTER_SELECT_TAG,
+          config.hooks?.[HOOKS.AFTER_SELECT_TAG],
           context,
         );
       });
 
       // 变更日志
       if (hasChangelog(config)) {
-        await effect(config, `run hook before:changelog`, async () => {
+        await effect(config, `run hook ${HOOKS.BEFORE_CHANGELOG}`, async () => {
           await runHook(
-            "before:changelog",
-            config.hooks?.["before:changelog"],
+            HOOKS.BEFORE_CHANGELOG,
+            config.hooks?.[HOOKS.BEFORE_CHANGELOG],
             context,
           );
         });
@@ -93,10 +106,10 @@ export async function release(inlineConfig: InlineConfig = {}) {
           },
         ]).run();
 
-        await effect(config, `run hook after:changelog`, async () => {
+        await effect(config, `run hook ${HOOKS.AFTER_CHANGELOG}`, async () => {
           await runHook(
-            "after:changelog",
-            config.hooks?.["after:changelog"],
+            HOOKS.AFTER_CHANGELOG,
+            config.hooks?.[HOOKS.AFTER_CHANGELOG],
             context,
           );
         });
@@ -104,8 +117,12 @@ export async function release(inlineConfig: InlineConfig = {}) {
       }
 
       // bump
-      await effect(config, `run hook before:bump`, async () => {
-        await runHook("before:bump", config.hooks?.["before:bump"], context);
+      await effect(config, `run hook ${HOOKS.BEFORE_BUMP}`, async () => {
+        await runHook(
+          HOOKS.BEFORE_BUMP,
+          config.hooks?.[HOOKS.BEFORE_BUMP],
+          context,
+        );
       });
 
       await effect(
@@ -116,8 +133,12 @@ export async function release(inlineConfig: InlineConfig = {}) {
         },
       );
 
-      await effect(config, `run hook after:bump`, async () => {
-        await runHook("after:bump", config.hooks?.["after:bump"], context);
+      await effect(config, `run hook ${HOOKS.AFTER_BUMP}`, async () => {
+        await runHook(
+          HOOKS.AFTER_BUMP,
+          config.hooks?.[HOOKS.AFTER_BUMP],
+          context,
+        );
       });
 
       // 总结阶段
@@ -125,62 +146,69 @@ export async function release(inlineConfig: InlineConfig = {}) {
 
       await effect(config, `run git operations and related hooks`, async () => {
         // git系列
-        await runHook("before:git", config.hooks?.["before:git"], context);
+        await runHook(
+          HOOKS.BEFORE_GIT,
+          config.hooks?.[HOOKS.BEFORE_GIT],
+          context,
+        );
         // git 具体步骤
         await runHook(
-          "before:git.add",
-          config.hooks?.["before:git.add"],
+          HOOKS.BEFORE_GIT_ADD,
+          config.hooks?.[HOOKS.BEFORE_GIT_ADD],
           context,
         );
         await gitAdd();
         await runHook(
-          "after:git.add",
-          config.hooks?.["after:git.add"],
+          HOOKS.AFTER_GIT_ADD,
+          config.hooks?.[HOOKS.AFTER_GIT_ADD],
           context,
         );
-
         await runHook(
-          "before:git.commit",
-          config.hooks?.["before:git.commit"],
+          HOOKS.BEFORE_GIT_COMMIT,
+          config.hooks?.[HOOKS.BEFORE_GIT_COMMIT],
           context,
         );
         await gitCommit(config, context);
         await runHook(
-          "after:git.commit",
-          config.hooks?.["after:git.commit"],
+          HOOKS.AFTER_GIT_COMMIT,
+          config.hooks?.[HOOKS.AFTER_GIT_COMMIT],
           context,
         );
 
         await runHook(
-          "before:git.tag",
-          config.hooks?.["before:git.tag"],
+          HOOKS.BEFORE_GIT_TAG,
+          config.hooks?.[HOOKS.BEFORE_GIT_TAG],
           context,
         );
         await gitTag(context);
         await runHook(
-          "after:git.tag",
-          config.hooks?.["after:git.tag"],
+          HOOKS.AFTER_GIT_TAG,
+          config.hooks?.[HOOKS.AFTER_GIT_TAG],
           context,
         );
 
         await runHook(
-          "before:git.push",
-          config.hooks?.["before:git.push"],
+          HOOKS.BEFORE_GIT_PUSH,
+          config.hooks?.[HOOKS.BEFORE_GIT_PUSH],
           context,
         );
         await gitPush(context);
         await runHook(
-          "after:git.push",
-          config.hooks?.["after:git.push"],
+          HOOKS.AFTER_GIT_PUSH,
+          config.hooks?.[HOOKS.AFTER_GIT_PUSH],
           context,
         );
 
-        await runHook("after:git", config.hooks?.["after:git"], context);
+        await runHook(
+          HOOKS.AFTER_GIT,
+          config.hooks?.[HOOKS.AFTER_GIT],
+          context,
+        );
 
         // 流程走完之后
         await runHook(
-          "after:release",
-          config.hooks?.["after:release"],
+          HOOKS.AFTER_RELEASE,
+          config.hooks?.[HOOKS.AFTER_RELEASE],
           context,
         );
       });
