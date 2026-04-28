@@ -1,6 +1,6 @@
-import chalk from "chalk";
+// import chalk from "chalk";
 import { Listr } from "listr2";
-import ora from "ora";
+// import ora from "ora";
 import { x } from "tinyexec";
 
 import type { HookItems, InternalReleaseContext } from "../config/types.ts";

@@ -1,3 +1,5 @@
+import { Listr } from "listr2";
+
 import { resolveConfig } from "./config/resolve.ts";
 import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
 import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
@@ -82,7 +84,14 @@ export async function release(inlineConfig: InlineConfig = {}) {
           );
         });
 
-        await genChangelog(config, context);
+        await new Listr([
+          {
+            title: "Generating changelog, please wait…",
+            task: async () => {
+              await genChangelog(config, context);
+            },
+          },
+        ]).run();
 
         await effect(config, `run hook after:changelog`, async () => {
           await runHook(

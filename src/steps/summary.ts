@@ -1,8 +1,8 @@
 import { confirm } from "@inquirer/prompts";
-import chalk from "chalk";
+import ansis from "ansis";
 
 import type { InternalReleaseContext } from "../config/types.ts";
-import { blank,gitChangeset } from "../utils/index.js";
+import { blank, gitChangeset } from "../utils/index.js";
 import { logger } from "../utils/index.js";
 
 export async function summary(context: InternalReleaseContext) {
@@ -35,7 +35,7 @@ export async function summary(context: InternalReleaseContext) {
 
 function renderSection(title: string, fn: () => Promise<void> | void) {
   blank();
-  logger.log(chalk.cyan(title));
+  logger.log(ansis.cyan(title));
   return fn();
 }
 
@@ -43,6 +43,6 @@ function renderKeyValue(data: Record<string, string>) {
   const maxKeyLength = Math.max(...Object.keys(data).map((k) => k.length));
 
   for (const [key, val] of Object.entries(data)) {
-    logger.log(chalk.green(key.padEnd(maxKeyLength + 2)), chalk.yellow(val));
+    logger.log(ansis.green(key.padEnd(maxKeyLength + 2)), ansis.yellow(val));
   }
 }
