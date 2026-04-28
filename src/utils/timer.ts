@@ -1,11 +1,11 @@
-import chalk from "chalk";
+import ansis from "ansis";
 
 import { logger } from "./index.ts";
 export async function withTimer<T>(fn: () => Promise<T>): Promise<T> {
   const start = performance.now();
   const result = await fn();
   const cost = formatDuration(performance.now() - start);
-  logger.log(chalk.green(`🎉 Released successfully! (in ${cost})`));
+  logger.log(ansis.green(`🎉 Released successfully! (in ${cost})`));
   return result;
 }
 

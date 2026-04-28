@@ -1,9 +1,10 @@
 import mri from "mri";
 
 import type { InternalReleaseContext } from "../config/types.ts";
+import { OUTPUT_FLAGS } from "../constants.ts";
 import { GenerateChangelogError } from "../errors.ts";
 import { runGitCliff } from "../git-cliff.ts";
-import { effect, logger, renderTemplate } from "../utils/index.js";
+import { logger, renderTemplate, runInDryRun } from "../utils/index.js";
 import type { ResolvedConfigWithChangelog } from "../utils/type.ts";
 
 export async function genChangelog(
@@ -13,31 +14,19 @@ export async function genChangelog(
   config.git.changelog.args = renderArgs(config.git.changelog.args, context);
 
   try {
-    const OUTPUT_FLAGS = ["o", "output"] as const;
-
     // dry-run模式下永远都把输出选项都移除掉
-    await effect(
-      config,
-      null,
-      () => {
-        config.git.changelog.args = removeFlag(
-          config.git.changelog.args,
-          OUTPUT_FLAGS,
-        );
-      },
-      {
-        runInDryRun: true,
-      },
-    );
-
-    console.log(config.git.changelog);
+    await runInDryRun(config, () => {
+      config.git.changelog.args = removeFlag(
+        config.git.changelog.args,
+        OUTPUT_FLAGS,
+      );
+    });
 
     const stdout = await runGitCliff(config.git.changelog);
 
     const cli = parseArgv(config.git.changelog.args);
 
     const hasOutput = cli.hasFlag(OUTPUT_FLAGS);
-    console.log(hasOutput);
 
     if (hasOutput) {
       const changelogFile = cli.getFlagValue<string | boolean>(OUTPUT_FLAGS);
@@ -48,18 +37,10 @@ export async function genChangelog(
       context.git.changelog = stdout;
     }
 
-    // console.log(context.git.changelog);
-
-    // await effect(
-    //   config,
-    //   `generate changelog`,
-    //   () => {
-    //     logger.box(context.git.changelog);
-    //   },
-    //   {
-    //     runInDryRun: true,
-    //   },
-    // );
+    // dryRun模式下直接打印在控制台上
+    await runInDryRun(config, `generate changelog`, () => {
+      logger.box(context.git.changelog);
+    });
   } catch {
     throw new GenerateChangelogError();
   }

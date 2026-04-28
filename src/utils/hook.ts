@@ -1,10 +1,9 @@
-// import chalk from "chalk";
 import { Listr } from "listr2";
-// import ora from "ora";
 import { x } from "tinyexec";
 
 import type { HookItems, InternalReleaseContext } from "../config/types.ts";
-import { logger, renderTemplate } from "./index.ts";
+import type { HookFn } from "../options.ts";
+import { renderTemplate } from "./index.ts";
 
 export async function runHook(
   hookName: string,
@@ -14,50 +13,63 @@ export async function runHook(
   if (!hooks?.length || !context) return;
 
   const tasks = new Listr(
-    [
-      {
-        title: hookName,
-        task: () =>
-          new Listr(
-            hooks.map((hook, index) => {
-              const title =
-                typeof hook === "string"
-                  ? renderTemplate(hook, context)
-                  : hook.name || `hook-${index + 1}`;
+    {
+      title: hookName,
+      task: () =>
+        new Listr(
+          hooks.map((hook, index) => {
+            const title = getHookTitle(hook, index, context);
 
-              return {
-                title,
-                task: async () => {
-                  if (typeof hook === "string") {
-                    const cmd = renderTemplate(hook, context);
+            return {
+              title,
+              task: async () => {
+                if (typeof hook === "string") {
+                  const cmd = renderTemplate(hook, context);
 
-                    await x(cmd, [], {
-                      nodeOptions: {
-                        shell: true,
-                        stdio: "pipe",
-                      },
-                    });
-                  } else {
-                    const { initialRef: _, ...publicCtx } = context;
+                  await x(cmd, [], {
+                    nodeOptions: {
+                      shell: true,
+                      stdio: "pipe",
+                    },
+                  });
+                } else {
+                  const { initialRef: _, ...publicCtx } = context;
 
-                    // 静默函数输出
-                    await muteStdout(() => hook(publicCtx));
-                  }
-                },
-              };
-            }),
-            {
-              concurrent: false, // 顺序执行子任务
-            },
-          ),
-      },
-    ],
+                  // 静默函数输出
+                  await muteStdout(() => hook(publicCtx));
+                }
+              },
+            };
+          }),
+          {
+            concurrent: false, // 顺序执行子任务
+          },
+        ),
+    },
     {
       concurrent: false,
     },
   );
 
   await tasks.run();
+}
+
+function getHookTitle(
+  hook: HookFn | string,
+  index: number,
+  context: InternalReleaseContext,
+) {
+  if (typeof hook === "string") {
+    return renderTemplate(hook, context);
+  }
+
+  const name = hook.name?.trim();
+
+  if (name) {
+    return `fn:${name}`;
+  }
+
+  return `fn:<anonymous-${index + 1}>`;
 }
 
 async function muteStdout<T>(fn: () => Promise<T> | T): Promise<T> {

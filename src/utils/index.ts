@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import ansis from "ansis";
 import { createConsola } from "consola";
 import { createDefu } from "defu";
 import { x } from "tinyexec";
@@ -8,7 +8,7 @@ import type {
   InternalReleaseContext,
   ResolvedConfig,
 } from "../config/types.ts";
-import { NAME } from "../constants.ts";
+import { dryRunPrefix, NAME } from "../constants.ts";
 
 type RequireBranch = Get<ResolvedConfig, "git.requireBranch">;
 
@@ -161,20 +161,45 @@ export function effect<T>(
   config: ResolvedConfig,
   desc: string | null,
   fn: () => T | Promise<T>,
-  options: {
-    runInDryRun?: boolean;
-  } = {},
 ) {
-  const isDryRun = config.dryRun;
-  const shouldSkip = isDryRun && !options.runInDryRun;
+  if (config.dryRun) {
+    logger.info(ansis.yellow(`${dryRunPrefix}${desc}`));
+    return;
+  }
+  return Promise.resolve().then(fn);
+}
 
-  if (desc && isDryRun) {
-    logger.info(chalk.yellow(`[dry-run] would ${desc}`));
+export function runInDryRun<T>(
+  config: ResolvedConfig,
+  fn: () => T | Promise<T>,
+): Promise<T | undefined>;
+export function runInDryRun<T>(
+  config: ResolvedConfig,
+  desc: string,
+  fn: () => T | Promise<T>,
+): Promise<T | undefined>;
+export function runInDryRun<T>(
+  config: ResolvedConfig,
+  arg1: string | (() => T | Promise<T>),
+  arg2?: () => T | Promise<T>,
+): Promise<T | undefined> {
+  if (!config.dryRun) {
+    return Promise.resolve(undefined);
   }
 
-  if (shouldSkip) {
-    return Promise.resolve(undefined as T);
+  let fn: () => T | Promise<T>;
+  let desc: string | undefined;
+
+  if (typeof arg1 === "function") {
+    fn = arg1;
+  } else {
+    desc = arg1;
+    fn = arg2!;
   }
 
-  return Promise.resolve().then(fn); // 捕获同步异常
+  if (desc) {
+    logger.info(ansis.yellow(`${dryRunPrefix}${desc}`));
+  }
+
+  return Promise.resolve().then(fn);
 }
