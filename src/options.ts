@@ -117,7 +117,8 @@ export type StepName =
   | "git.add"
   | "git.commit"
   | "git.tag"
-  | "git.push";
+  | "git.push"
+  | "release";
 
 export type HookEvent = `before:${StepName}` | `after:${StepName}`;
 

@@ -53,6 +53,9 @@ export const pipeline: Step[] = [
       await bump(config, context);
     },
   },
+  {
+    name: "release",
+  },
 ];
 
 export async function runPipeline(
@@ -63,29 +66,26 @@ export async function runPipeline(
   for (const step of steps) {
     const stepName = step.name;
 
-    if (stepName) {
-      // 首先确定是钩子才执行
-      await effect(config, `run hook ${stepName}`, async () => {
-        await runHook(
-          `before:${stepName}`,
-          config.hooks?.[`before:${stepName}`],
-          context,
-        );
-      });
-    }
-
-    if (step.run) {
+    if (!stepName) {
+      // 直接运行
       await step.run(config, context);
+      continue;
     }
 
-    if (stepName) {
-      await effect(config, `run hook ${stepName}`, async () => {
-        await runHook(
-          `after:${stepName}`,
-          config.hooks?.[`after:${stepName}`],
-          context,
-        );
-      });
-    }
+    await effect(config, `run hook ${stepName}`, async () => {
+      await runHook(
+        `before:${stepName}`,
+        config.hooks?.[`before:${stepName}`],
+        context,
+      );
+    });
+
+    await effect(config, `run hook ${stepName}`, async () => {
+      await runHook(
+        `after:${stepName}`,
+        config.hooks?.[`after:${stepName}`],
+        context,
+      );
+    });
   }
 }
