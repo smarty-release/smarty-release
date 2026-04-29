@@ -16,10 +16,6 @@
 
 此外，您还可以直接在 package.json 文件的 `smarty-release` 字段中定义配置。
 
-::: tip
-虽然**smarty-release**支持直接在package.json文件和单独的json后缀配置文件进行配置,但是依然建议您使用javascript配置文件,以或者更好的支持。
-:::
-
 ::: details 关于文件扩展名的说明：
 `.mjs` 扩展名会使文件采用 [ES 模块（ESM）](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)格式。默认情况下，Node 会将 `.js` 文件按 [CommonJS（CJS）](https://nodejs.org/api/modules.html)格式解析，但如果你在 package.json 中设置了 `"type": "module"`，那么也可以使用 `smarty-release.config.js`。
 :::
@@ -138,15 +134,67 @@ exports default {
 };
 ```
 
+== JSON
+
+```json
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/smarty-release@latest/schema/smarty-release.json",
+  "increments": ["patch", "minor", "major"],
+  "tags": ["latest", "next"],
+  "git": {
+    "requireBranch": "main",
+    "commitMessage": "release: v${version}",
+    "tagName": "v${version}",
+    "changelog": {
+      "args": "-o --tag ${version}",
+      "template": "github"
+    }
+  },
+  "hooks": {
+    "before:init": "pnpm test"
+  }
+}
+```
+
+== JSON（In package.json）
+
+```json{5-20}
+{
+  "name": "you-awesome-project",
+  "version": "1.8.1",
+  // ...
+  "smarty-release": {
+    "increments": ["patch", "minor", "major"],
+    "tags": ["latest", "next"],
+    "git": {
+      "requireBranch": "main",
+      "commitMessage": "release: v${version}",
+      "tagName": "v${version}",
+      "changelog": {
+        "args": "-o --tag ${version}",
+        "template": "github"
+      }
+    },
+    "hooks": {
+      "before:init": "pnpm test"
+    }
+  }
+}
+```
+
 :::
 
-### 其它示例 - smarty-release.config.cts
+::: warning
+虽然**smarty-release**支持Json进行配置,但是依然建议您使用javascript配置文件,以获得更好的支持。
+:::
 
-`.cts` 格式结合了 TypeScript 的类型安全和 CommonJS 的模块系统，适合需要类型检查的 CommonJS 项目。对于 TypeScript 代码库，您还可以使用[satisfies](https://www.tslang.org/release-notes/typescript-4-9#satisfies-%E8%BF%90%E7%AE%97%E7%AC%A6)运算符来确保类型安全：
+### 使用 `satisfies` 运算符
 
-::: details 点此查看代码
+对于 TypeScript 代码库，您还可以使用[satisfies](https://www.tslang.org/release-notes/typescript-4-9#satisfies-%E8%BF%90%E7%AE%97%E7%AC%A6)运算符来确保类型安全(这里以为`.cts`后缀配置文件来说明)：
 
 ```ts
+// smarty-release.config.cts
+
 import type { UserConfig } from "smarty-release";
 
 module.exports = {
@@ -168,6 +216,8 @@ module.exports = {
 } satisfies UserConfig;
 ```
 
+::: tip
+`.cts` 格式结合了 TypeScript 的类型安全和 CommonJS 的模块系统，适合需要类型检查的 CommonJS 项目。
 :::
 
 ## 指定自定义配置文件

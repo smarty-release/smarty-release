@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "definitions": {
+    "releaseType": {
+      "type": "string",
+      "enum": [
+        "major",
+        "minor",
+        "patch",
+        "premajor",
+        "preminor",
+        "prepatch",
+        "prerelease"
+      ]
+    },
+    "distTag": {
+      "type": "string",
+      "enum": ["latest", "next", "beta", "alpha", "canary", "rc"]
+    },
+    "stringOrArray": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      ]
+    }
+  }
+}

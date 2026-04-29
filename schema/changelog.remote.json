@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "github": {
+      "$ref": "#/definitions/provider"
+    },
+    "azure_devops": {
+      "$ref": "#/definitions/provider"
+    },
+    "gitlab": {
+      "$ref": "#/definitions/provider"
+    },
+    "gitea": {
+      "$ref": "#/definitions/provider"
+    },
+    "bitbucket": {
+      "$ref": "#/definitions/provider"
+    }
+  },
+  "definitions": {
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "owner": { "type": "string" },
+        "repo": { "type": "string" },
+        "token": { "type": "string" }
+      }
+    }
+  }
+}

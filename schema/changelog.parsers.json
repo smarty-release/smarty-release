@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "definitions": {
+    "commitParser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["message"],
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "group": {
+          "type": "string"
+        },
+        "default_scope": {
+          "type": "string"
+        },
+        "skip": {
+          "type": "boolean"
+        }
+      }
+    },
+    "linkParser": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "type": "string"
+        },
+        "href": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

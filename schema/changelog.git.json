@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "conventional_commits": {
+      "type": "boolean"
+    },
+    "filter_unconventional": {
+      "type": "boolean"
+    },
+    "require_conventional": {
+      "type": "boolean"
+    },
+    "split_commits": {
+      "type": "boolean"
+    },
+    "commit_parsers": {
+      "type": "array",
+      "items": {
+        "$ref": "./changelog.parsers.json#/definitions/commitParser"
+      }
+    },
+    "protect_breaking_commits": {
+      "type": "boolean"
+    },
+    "filter_commits": {
+      "type": "boolean"
+    },
+    "fail_on_unmatched_commit": {
+      "type": "boolean"
+    },
+    "tag_pattern": {
+      "type": "string"
+    },
+    "skip_tags": {
+      "type": "string"
+    },
+    "ignore_tags": {
+      "type": "string"
+    },
+    "topo_order": {
+      "type": "boolean"
+    },
+    "topo_order_commits": {
+      "type": "boolean"
+    },
+    "sort_commits": {
+      "type": "string",
+      "enum": ["oldest", "newest"]
+    },
+    "link_parsers": {
+      "type": "array",
+      "items": {
+        "$ref": "./changelog.parsers.json#/definitions/linkParser"
+      }
+    },
+    "limit_commits": {
+      "type": "number"
+    },
+    "recurse_submodules": {
+      "type": "boolean"
+    },
+    "include_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "exclude_paths": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

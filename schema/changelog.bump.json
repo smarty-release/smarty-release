@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "bump_type": {
+      "type": "string"
+    },
+    "features_always_bump_minor": {
+      "type": "boolean"
+    },
+    "breaking_always_bump_major": {
+      "type": "boolean"
+    },
+    "custom_major_increment_regex": {
+      "type": "string"
+    },
+    "custom_minor_increment_regex": {
+      "type": "string"
+    },
+    "initial_tag": {
+      "type": "string"
+    }
+  }
+}

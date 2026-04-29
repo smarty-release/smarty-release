@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "smarty-release#changelog",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "args": {
+      "$ref": "./common.json#/definitions/stringOrArray"
+    },
+    "template": {
+      "type": "string"
+    },
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bump": {
+          "$ref": "./changelog.bump.json"
+        },
+        "changelog": {
+          "$ref": "./changelog.content.json"
+        },
+        "git": {
+          "$ref": "./changelog.git.json"
+        },
+        "remote": {
+          "$ref": "./changelog.remote.json"
+        }
+      }
+    }
+  }
+}

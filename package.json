@@ -31,7 +31,8 @@
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "schema"
   ],
   "scripts": {
     "lint": "eslint . --cache",

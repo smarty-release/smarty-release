@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "smarty-release#config",
+  "title": "Smarty Release Config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "increments": {
+      "type": "array",
+      "items": {
+        "$ref": "./common.json#/definitions/releaseType"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "$ref": "./common.json#/definitions/distTag"
+      }
+    },
+    "git": {
+      "$ref": "./git.json"
+    },
+    "hooks": {
+      "$ref": "./hooks.json"
+    }
+  }
+}
