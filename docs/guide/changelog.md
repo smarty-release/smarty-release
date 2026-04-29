@@ -30,17 +30,19 @@ export default {
 
 ## 模板配置(template)
 
-git-cliff内置了许多非常流行的变更日志格式(规范)的模板:
+git-cliff内置了许多非常流行的变更日志格式(规范)的模板,你可以通过`git.changelog.template`属性来配置，可用的列表如下：
 
-- [`keepachangelog.toml`](https://github.com/orhun/git-cliff/tree/main/examples/keepachangelog.toml)：采用 [Keep a Changelog 格式](https://keepachangelog.com/en/1.1.0/) 的变更日志。
-- [`github.toml`](https://github.com/orhun/git-cliff/tree/main/examples/github.toml)：采用 [GitHub 官方格式](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes) 的变更日志。
-- [`github-keepachangelog.toml`](https://github.com/orhun/git-cliff/tree/main/examples/github-keepachangelog.toml)：上述两种格式的组合。
-- [`detailed.toml`](https://github.com/orhun/git-cliff/tree/main/examples/detailed.toml)：包含提交链接的详细变更日志。
-- [`minimal.toml`](https://github.com/orhun/git-cliff/tree/main/examples/minimal.toml)：最简变更日志。
-- [`scoped.toml`](https://github.com/orhun/git-cliff/tree/main/examples/scoped.toml)：按提交的 scope 分组的变更日志。
-- [`scopesorted.toml`](https://github.com/orhun/git-cliff/tree/main/examples/scopesorted.toml)：按 scope 分组并排序的变更日志。
-- [`cocogitto.toml`](https://github.com/orhun/git-cliff/tree/main/examples/cocogitto.toml)：类似 [cocogitto 格式](https://github.com/cocogitto/cocogitto/blob/main/CHANGELOG.md) 的变更日志。
-- [`unconventional.toml`](https://github.com/orhun/git-cliff/tree/main/examples/unconventional.toml)：适用于非规范提交（unconventional commits）的变更日志。
+- `azure-devops-keepachangelog`
+- `cocogitto`
+- `detailed`
+- `github-keepachangelog`
+- `github`
+- `keepachangelog`
+- `minimal`
+- `scoped`
+- `scopesorted`
+- `statistics`
+- `unconventional`
 
 可以在git-cliff文档中查看不同模板生成效果[示例](https://git-cliff.org/docs/templating/examples)。
 
@@ -54,7 +56,7 @@ git-cliff内置了许多非常流行的变更日志格式(规范)的模板:
 
 ### 配置文件的对照格式
 
-由于toml格式和js对象的表达方式有些许不同,所以这里给出一个简单的对照，这里就以 git-cliff 的[github.toml](https://github.com/orhun/git-cliff/blob/main/examples/github.toml)模板为例：
+由于toml格式和js对象的表达方式有些许不同,所以这里给出一个简单的对照，这里就以 git-cliff 的[github.toml](https://github.com/smarty-release/smarty-release/blob/main/templates/github.toml)模板为例：
 
 :::tabs variant:code
 
@@ -216,8 +218,4 @@ export default {
 } satisfies UserConfig;
 ```
 
-:::
-
-::: tip
-使用javascript配置文件时会有类型提示,这也是为什么`Smarty-Release`不推荐你使用`json`格式的配置的原因。
 :::
