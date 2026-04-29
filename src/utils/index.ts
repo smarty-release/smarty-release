@@ -9,6 +9,7 @@ import type {
   ResolvedConfig,
 } from "../config/types.ts";
 import { dryRunPrefix, NAME } from "../constants.ts";
+import type { ResolvedConfigWithChangelog } from "./type.ts";
 
 type RequireBranch = Get<ResolvedConfig, "git.requireBranch">;
 
@@ -202,4 +203,10 @@ export function runInDryRun<T>(
   }
 
   return Promise.resolve().then(fn);
+}
+
+export function hasChangelog(
+  config: ResolvedConfig,
+): config is ResolvedConfigWithChangelog {
+  return config.git.changelog !== false;
 }

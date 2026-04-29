@@ -41,12 +41,11 @@ export type ResolvedConfig = MergeDeep<
     config?: string;
   }
 >;
+type HookTiming = "before" | "after" | "around" | "none";
 
 export interface Step {
-  name: StepName;
-  run?: () => Promise<void>;
-  children?: Step[];
-  skip?: (ctx: InternalReleaseContext) => boolean;
-
-  effect?: boolean; //  是否是副作用
+  name?: StepName;
+  run?: (config: ResolvedConfig, ctx: InternalReleaseContext) => Promise<void>;
+  effect?: boolean;
+  hookTiming?: HookTiming;
 }

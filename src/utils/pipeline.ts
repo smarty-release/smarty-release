@@ -3,30 +3,56 @@ import type {
   ResolvedConfig,
   Step,
 } from "../config/types.ts";
+import {
+  bump,
+  confirmChangelog,
+  genChangelog,
+  selectTag,
+  selectVersion,
+} from "../steps/index.ts";
 import { runHook } from "../utils/hook.ts";
-import { effect } from "../utils/index.ts";
+import { effect, hasChangelog } from "../utils/index.ts";
 
 export const pipeline: Step[] = [
   {
     name: "init",
-    run: () => {
-      console.log("init");
-
-      return Promise.resolve();
-    }, // 只是 hook
   },
-
-  // {
-  //   name: "select_version",
-  //   run: async () => {
-  //     console.log("w");
-  //     return Promise.resolve();
-  //   },
-  // },
-  // {
-  //   name: "git",
-  //   effect: true,
-  // },
+  {
+    name: "selectVersion",
+    effect: false,
+    run: async (config, context) => {
+      await selectVersion(config, context);
+    },
+  },
+  {
+    name: "selectTag",
+    effect: false,
+    run: async (config, context) => {
+      await selectTag(config, context);
+    },
+  },
+  {
+    name: "changelog",
+    effect: false,
+    run: async (config, context) => {
+      if (!hasChangelog(config)) return;
+      await genChangelog(config, context);
+    },
+  },
+  {
+    effect: false,
+    run: async (config, context) => {
+      if (!hasChangelog(config)) return;
+      await confirmChangelog(context);
+    },
+  },
+  {
+    name: "bump",
+    effect: false,
+    run: async (config, context) => {
+      await bump(config, context);
+    },
+  },
 ];
 
 export async function runPipeline(
@@ -35,31 +61,31 @@ export async function runPipeline(
   context: InternalReleaseContext,
 ) {
   for (const step of steps) {
-    if (step.skip?.(context)) continue;
+    const stepName = step.name;
 
-    const runner = async () => {
-      await runHook(
-        `before:${step.name}`,
-        config.hooks?.[`before:${step.name}`],
-        context,
-      );
+    if (stepName) {
+      // 首先确定是钩子才执行
+      await effect(config, `run hook ${stepName}`, async () => {
+        await runHook(
+          `before:${stepName}`,
+          config.hooks?.[`before:${stepName}`],
+          context,
+        );
+      });
+    }
 
-      if (step.run) {
-        await step.run();
-        console.log("ww");
-      }
+    if (step.run) {
+      await step.run(config, context);
+    }
 
-      await runHook(
-        `after:${step.name}`,
-        config.hooks?.[`after:${step.name}`],
-        context,
-      );
-    };
-
-    if (step.effect) {
-      await effect(config, step.name, runner);
-    } else {
-      await runner();
+    if (stepName) {
+      await effect(config, `run hook ${stepName}`, async () => {
+        await runHook(
+          `after:${stepName}`,
+          config.hooks?.[`after:${stepName}`],
+          context,
+        );
+      });
     }
   }
 }

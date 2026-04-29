@@ -13,10 +13,3 @@ export type ResolvedConfigWithChangelog = MergeDeep<
     };
   }
 >;
-
-export function hasChangelog(
-  config: ResolvedConfig,
-): config is ResolvedConfigWithChangelog {
-  return config.git.changelog !== false;
-}
-export type PickProp<T, K extends keyof T> = T[K];
