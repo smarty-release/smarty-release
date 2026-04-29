@@ -1,10 +1,11 @@
-import type { MergeDeep, OverrideProperties,RequiredDeep } from "type-fest";
+import type { MergeDeep, OverrideProperties, RequiredDeep } from "type-fest";
 
 import type {
   ChangelogOptions,
   Hook,
   HookEvent,
   ReleaseContext,
+  StepName,
   UserConfig,
 } from "../options.ts";
 
@@ -40,3 +41,12 @@ export type ResolvedConfig = MergeDeep<
     config?: string;
   }
 >;
+
+export interface Step {
+  name: StepName;
+  run?: () => Promise<void>;
+  children?: Step[];
+  skip?: (ctx: InternalReleaseContext) => boolean;
+
+  effect?: boolean; //  是否是副作用
+}

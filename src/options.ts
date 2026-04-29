@@ -105,27 +105,21 @@ type DistTag =
   | "rc"
   | (string & {}); // 允许自定义
 
-export type HookEvent =
-  | "before:init"
-  | "before:selectVersion"
-  | "after:selectVersion"
-  | "after:bump"
-  | "after:release"
-  | "before:selectTag"
-  | "after:selectTag"
-  | "before:changelog"
-  | "after:changelog"
-  | "before:bump"
-  | "before:git"
-  | "before:git.add"
-  | "after:git.add"
-  | "before:git.commit"
-  | "after:git.commit"
-  | "before:git.tag"
-  | "after:git.tag"
-  | "before:git.push"
-  | "after:git.push"
-  | "after:git";
+export type HookPrefix = "before" | "after";
+
+export type StepName =
+  | "init"
+  | "selectVersion"
+  | "selectTag"
+  | "changelog"
+  | "bump"
+  | "git"
+  | "git.add"
+  | "git.commit"
+  | "git.tag"
+  | "git.push";
+
+export type HookEvent = `before:${StepName}` | `after:${StepName}`;
 
 /**
  * CLI运行时产生的一些配置

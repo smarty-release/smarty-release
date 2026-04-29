@@ -1,0 +1,2201 @@
+src/changelog.ts内容如下：
+
+import { resolveConfig } from "./config/resolve.ts";
+import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
+import { runGitCliff } from "./git-cliff.ts";
+import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
+import { logger } from "./utils/index.ts";
+
+export async function changelog(
+  inlineConfig: InlineConfig = {},
+  args: string[],
+) {
+  // 处理参数
+  const config: ResolvedConfig = await resolveConfig(inlineConfig);
+
+  // 验证git仓库状态
+  await checkGitRepoStatus(config);
+
+  if (config.git.changelog === false) {
+    logger.warn("Changelog generation is disabled.");
+    return;
+  }
+
+  config.git.changelog.args = args;
+
+  // 开始调用git-cliff
+  await runGitCliff(config.git.changelog);
+}
+
+
+src/cli.ts内容如下：
+
+#!/usr/bin/env node
+
+import { cac } from "cac";
+import lt from "semver/functions/lt.js";
+
+import pkg from "../package.json" with { type: "json" };
+import type { InlineConfig } from "./config/types.ts";
+import { NAME } from "./constants.ts";
+import { CancelledError } from "./errors.ts";
+import { getCommandRawArgs,logger } from "./utils/index.js";
+
+if (lt(process.version, "22.18.0")) {
+  logger.warn(
+    `[${NAME}] Node.js ${process.version} is deprecated. Support will be removed in the next minor release. Please upgrade to Node.js 22.18.0 or later.`,
+  );
+}
+
+const cli = cac(NAME);
+cli.help().version(pkg.version);
+
+cli
+  .command("[run]", "Start release process")
+  .alias("run")
+  .option("-d, --dry-run", "Simulate release without applying changes.")
+  .option("-c, --config <path>", "Path to the config file")
+  .option("-V, --verbose", "Verbose output (user hooks output)")
+  .action(async (run, options: InlineConfig) => {
+    const { release } = await import("./release.ts");
+    await release(options);
+  });
+
+cli
+  .command("changelog", "Options to pass to git-cliff", {
+    allowUnknownOptions: true,
+  })
+  .option("-c, --config <path>", "Path to the config file")
+  .action(async (input, options: InlineConfig) => {
+    const { changelog } = await import("./changelog.ts");
+    const args = getCommandRawArgs(cli.rawArgs, ["changelog"]);
+    await changelog(options, args);
+  });
+
+try {
+  cli.parse(process.argv, { run: false });
+  await cli.runMatchedCommand();
+} catch (err: unknown) {
+  if (!err) process.exit(0);
+
+  if (err instanceof CancelledError) {
+    logger.warn(err.message);
+  } else if (err instanceof Error) {
+    logger.error(err.message);
+  } else {
+    logger.error(`Unknown error`, err);
+  }
+
+  process.exit(1);
+}
+
+
+src/config/configSchema.ts内容如下：
+
+import * as v from "valibot";
+
+/**
+ * 基础类型
+ */
+const stringOrStringArray = v.union([v.string(), v.array(v.string())]);
+
+/**
+ * DistTag
+ */
+const distTag = v.union([
+  v.literal("latest"),
+  v.literal("next"),
+  v.literal("beta"),
+  v.literal("alpha"),
+  v.literal("canary"),
+  v.literal("rc"),
+  v.string(), // 自定义
+]);
+
+/**
+ * HookEvent
+ */
+const hookEvent = v.union([
+  v.literal("before:init"),
+  v.literal("before:selectVersion"),
+  v.literal("after:selectVersion"),
+  v.literal("after:bump"),
+  v.literal("after:release"),
+  v.literal("before:selectTag"),
+  v.literal("after:selectTag"),
+  v.literal("before:changelog"),
+  v.literal("after:changelog"),
+  v.literal("before:bump"),
+  v.literal("before:git"),
+  v.literal("before:git.add"),
+  v.literal("after:git.add"),
+  v.literal("before:git.commit"),
+  v.literal("after:git.commit"),
+  v.literal("before:git.tag"),
+  v.literal("after:git.tag"),
+  v.literal("before:git.push"),
+  v.literal("after:git.push"),
+  v.literal("after:git"),
+]);
+
+/**
+ * Hook
+ */
+const hookItem = v.union([
+  v.string(),
+  v.function(), // (ctx) => any
+]);
+
+const hook = v.union([hookItem, v.array(hookItem)]);
+
+const hooks = v.optional(v.record(hookEvent, hook));
+
+/**
+ * RemoteProviderConfig
+ */
+const remoteProviderConfig = v.object({
+  owner: v.optional(v.string()),
+  repo: v.optional(v.string()),
+  token: v.optional(v.string()),
+});
+
+/**
+ * Remote
+ */
+const remote = v.optional(
+  v.object({
+    github: v.optional(remoteProviderConfig),
+    gitlab: v.optional(remoteProviderConfig),
+    gitea: v.optional(remoteProviderConfig),
+    bitbucket: v.optional(remoteProviderConfig),
+    azure_devops: v.optional(remoteProviderConfig),
+  }),
+);
+
+/**
+ * Commit parser
+ */
+const commitParser = v.object({
+  message: v.string(),
+  group: v.optional(v.string()),
+  default_scope: v.optional(v.string()),
+  skip: v.optional(v.boolean()),
+});
+
+/**
+ * Git changelog config
+ */
+const changelogGitConfig = v.object({
+  conventional_commits: v.optional(v.boolean()),
+  filter_unconventional: v.optional(v.boolean()),
+  require_conventional: v.optional(v.boolean()),
+  split_commits: v.optional(v.boolean()),
+  commit_parsers: v.optional(v.array(commitParser)),
+  protect_breaking_commits: v.optional(v.literal(false)),
+  filter_commits: v.optional(v.boolean()),
+  fail_on_unmatched_commit: v.optional(v.boolean()),
+  tag_pattern: v.optional(v.string()),
+  skip_tags: v.optional(v.string()),
+  ignore_tags: v.optional(v.string()),
+  topo_order: v.optional(v.boolean()),
+  topo_order_commits: v.optional(v.boolean()),
+  sort_commits: v.optional(v.union([v.literal("oldest"), v.literal("newest")])),
+  link_parsers: v.optional(
+    v.array(
+      v.object({
+        pattern: v.optional(v.string()),
+        href: v.optional(v.string()),
+      }),
+    ),
+  ),
+  limit_commits: v.optional(v.number()),
+  recurse_submodules: v.optional(v.boolean()),
+  include_paths: v.optional(v.array(v.string())),
+  exclude_paths: v.optional(v.array(v.string())),
+});
+
+/**
+ * ChangelogConfig
+ */
+const changelogConfig = v.object({
+  bump: v.optional(
+    v.object({
+      bump_type: v.optional(v.string()),
+      features_always_bump_minor: v.optional(v.boolean()),
+      breaking_always_bump_major: v.optional(v.boolean()),
+      custom_major_increment_regex: v.optional(v.string()),
+      custom_minor_increment_regex: v.optional(v.string()),
+      initial_tag: v.optional(v.string()),
+    }),
+  ),
+  changelog: v.optional(
+    v.object({
+      header: v.optional(v.string()),
+      body: v.optional(v.string()),
+      footer: v.optional(v.string()),
+      trim: v.optional(v.boolean()),
+    }),
+  ),
+  git: v.optional(changelogGitConfig),
+  remote,
+});
+
+/**
+ * ChangelogOptions
+ */
+const changelogOptions = v.object({
+  args: v.optional(stringOrStringArray),
+  template: v.optional(v.string()), // 允许自定义 template
+  config: v.optional(changelogConfig),
+});
+
+/**
+ * Git config（外层）
+ */
+const git = v.optional(
+  v.object({
+    changelog: v.optional(v.union([v.literal(false), changelogOptions])),
+    requireBranch: v.optional(
+      v.union([
+        v.string(),
+        v.array(v.string()),
+        v.instance(RegExp),
+        v.literal(false),
+      ]),
+    ),
+    commitMessage: v.optional(v.string()),
+    commitArgs: v.optional(v.array(v.string())),
+    tagName: v.optional(v.string()),
+  }),
+);
+
+/**
+ * InlineConfig（最终）
+ */
+export const inlineConfigSchema = v.object({
+  increments: v.optional(v.array(v.string())), // semver.ReleaseType 简化
+  tags: v.optional(v.array(distTag)),
+  git,
+  hooks,
+  cwd: v.optional(v.string()),
+  config: v.optional(v.string()),
+  dryRun: v.optional(v.boolean()),
+});
+
+
+src/config/defaults.ts内容如下：
+
+import { NAME } from "../constants.ts";
+import type { InlineConfig } from "./types.ts";
+
+const defaults = {
+  increments: ["patch", "minor", "major"],
+  tags: ["latest", "next"],
+  git: {
+    // 变更日志
+    changelog: {
+      args: "-o --tag ${version}",
+      template: "github",
+      config: {
+        changelog: {
+          footer: `<!-- powered by ${NAME} -->`,
+        },
+      },
+    },
+    requireBranch: ["main", "master"],
+    commitMessage: "release: v${version}",
+    commitArgs: ["--no-verify", "-s"],
+    tagName: "v${version}",
+  },
+  hooks: {},
+  cwd: process.cwd(),
+  dryRun: false,
+} satisfies InlineConfig;
+
+export default defaults;
+
+
+src/config/index.ts内容如下：
+
+import { resolve } from "node:path";
+
+import type { LilconfigResult,Loader } from "lilconfig";
+import { lilconfig } from "lilconfig";
+
+type LoaderReturn = Promise<Awaited<ReturnType<Loader>>>;
+type LoaderFilepath = Parameters<Loader>[0];
+
+export async function loadConfig<T>(
+  name: string,
+  configPath?: string,
+): Promise<T> {
+  const explorer = lilconfig(name, {
+    loaders: {
+      ".mts": loadTS,
+      ".ts": loadTS,
+      ".cts": loadTS,
+    },
+    searchPlaces: [
+      `${name}.config.ts`,
+      `${name}.config.mts`,
+      `${name}.config.cts`,
+      `${name}.config.json`,
+    ],
+  });
+
+  const result: LilconfigResult = configPath
+    ? await explorer.load(resolve(process.cwd(), configPath))
+    : await explorer.search();
+
+  if (!result) {
+    return {} as T;
+  }
+  return result.config as T;
+}
+async function loadTS(filepath: LoaderFilepath): LoaderReturn {
+  const { createJiti } = await import("jiti");
+  return createJiti(import.meta.url, { interopDefault: true }).import(
+    filepath,
+    { default: true },
+  );
+}
+
+
+src/config/resolve.ts内容如下：
+
+import { parse } from "valibot";
+
+import { NAME } from "../constants.ts";
+import type {
+  ChangelogOptions,
+  Hook,
+  HookEvent,
+  Hooks,
+  UserConfig,
+} from "../options.ts";
+import { defu } from "../utils/index.ts";
+import { inlineConfigSchema } from "./configSchema.ts";
+import defaultsConfig from "./defaults.ts";
+import { loadConfig } from "./index.ts";
+import type { InlineConfig, NormalizedHooks, ResolvedConfig } from "./types.ts";
+
+type Args = NonNullable<ChangelogOptions["args"]>;
+
+export async function resolveConfig(
+  inlineConfig: InlineConfig = {},
+): Promise<ResolvedConfig> {
+  // 加载配置
+  const fileConfig = await loadConfig<UserConfig>(NAME, inlineConfig.config);
+
+  // 合并选项
+  const merged = defu(inlineConfig, fileConfig, defaultsConfig);
+
+  // 验证参数合法性
+  parse(inlineConfigSchema, merged);
+
+  // 参数归一化处理
+  const resolved: ResolvedConfig = {
+    ...merged,
+    git: {
+      ...merged.git,
+      changelog: normalizeChangelog(merged.git.changelog),
+    },
+    hooks: normalizeHooks(merged.hooks),
+  };
+
+  return resolved;
+}
+
+function normalizeHooks(hooks: Hooks = {}) {
+  const result: NormalizedHooks = {};
+
+  for (const [event, hook] of Object.entries(hooks) as [HookEvent, Hook][]) {
+    result[event] = normalizeHookValue(hook);
+  }
+
+  return result;
+}
+
+function normalizeHookValue(hook?: Hook) {
+  if (!hook) return [];
+  return Array.isArray(hook) ? hook : [hook];
+}
+
+function normalizeChangelog(changelog: false | Required<ChangelogOptions>) {
+  if (changelog === false) return false;
+
+  return {
+    ...changelog,
+    args: normalizeArgs(changelog.args),
+  };
+}
+
+function normalizeArgs(args: Args): string[] {
+  if (Array.isArray(args)) return args;
+  return args.trim().split(/\s+/);
+}
+
+
+src/config/types.ts内容如下：
+
+import type { MergeDeep, OverrideProperties, RequiredDeep } from "type-fest";
+
+import type {
+  ChangelogOptions,
+  Hook,
+  HookEvent,
+  ReleaseContext,
+  UserConfig,
+} from "../options.ts";
+
+export interface InternalReleaseContext extends ReleaseContext {
+  initialRef: string;
+}
+
+export interface InlineConfig extends UserConfig {
+  config?: string;
+  dryRun?: boolean;
+  cwd?: string;
+}
+
+export type HookItems = Extract<Hook, unknown[]>;
+export type NormalizedHooks = Partial<Record<HookEvent, HookItems>>;
+
+export type NormalizedChangelogOptions = Required<
+  OverrideProperties<
+    ChangelogOptions,
+    {
+      args: string[];
+    }
+  >
+>;
+
+export type ResolvedConfig = MergeDeep<
+  RequiredDeep<InlineConfig>,
+  {
+    git: {
+      changelog: false | NormalizedChangelogOptions;
+    };
+    hooks: NormalizedHooks;
+    config?: string;
+  }
+>;
+export interface Step {
+  name: string;
+  run?: () => Promise<void>;
+  children?: Step[];
+  skip?: (ctx: InternalReleaseContext) => boolean;
+
+  effect?: boolean; //  是否是副作用
+}
+
+
+src/constants.ts内容如下：
+
+export const NAME = "smarty-release";
+export const OUTPUT_FLAGS = ["o", "output"] as const;
+export const dryRunPrefix = "[dry-run] would ";
+export const HOOKS = {
+  BEFORE_INIT: "before:init",
+
+  BEFORE_SELECT_VERSION: "before:selectVersion",
+  AFTER_SELECT_VERSION: "after:selectVersion",
+
+  BEFORE_SELECT_TAG: "before:selectTag",
+  AFTER_SELECT_TAG: "after:selectTag",
+
+  BEFORE_CHANGELOG: "before:changelog",
+  AFTER_CHANGELOG: "after:changelog",
+
+  BEFORE_BUMP: "before:bump",
+  AFTER_BUMP: "after:bump",
+
+  BEFORE_GIT: "before:git",
+  AFTER_GIT: "after:git",
+
+  BEFORE_GIT_ADD: "before:git.add",
+  AFTER_GIT_ADD: "after:git.add",
+
+  BEFORE_GIT_COMMIT: "before:git.commit",
+  AFTER_GIT_COMMIT: "after:git.commit",
+
+  BEFORE_GIT_TAG: "before:git.tag",
+  AFTER_GIT_TAG: "after:git.tag",
+
+  BEFORE_GIT_PUSH: "before:git.push",
+  AFTER_GIT_PUSH: "after:git.push",
+
+  AFTER_RELEASE: "after:release",
+} as const;
+
+
+src/errors.ts内容如下：
+
+// 基础错误类
+export class BaseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = this.constructor.name; // 自动使用类名作为 name
+  }
+}
+
+// 用户自己取消错误
+export class CancelledError extends BaseError {
+  constructor(message: string = "Release cancelled by user") {
+    super(message);
+  }
+}
+
+// 当前目录非 Git 仓库错误
+export class NotGitRepoError extends BaseError {
+  constructor(
+    message: string = "Current working directory is not a git repository.",
+  ) {
+    super(message);
+  }
+}
+
+// Git 工作目录不干净错误
+export class GitDirtyError extends BaseError {
+  constructor(
+    message: string = "Working directory is not clean. Please commit your changes.",
+  ) {
+    super(message);
+  }
+}
+
+export class GitNotInstalledError extends BaseError {
+  constructor(
+    message: string = "Git is not installed or not available in your PATH. Please install Git to continue.",
+  ) {
+    super(message);
+  }
+}
+
+export class GitRemoteNotFoundError extends BaseError {
+  constructor(
+    message: string = "No Git remote repository found (e.g. 'origin'). Please add a remote using 'git remote add origin <url>'.",
+  ) {
+    super(message);
+  }
+}
+
+export class GitRemoteParseError extends BaseError {
+  constructor(
+    message: string = "Failed to parse Git remote URL. Please ensure it is a valid Git repository URL (e.g. GitHub, GitLab, Bitbucket).",
+  ) {
+    super(message);
+  }
+}
+export class GenerateChangelogError extends BaseError {
+  constructor(message: string = "Failed to generate changelog.") {
+    super(message);
+  }
+}
+export class NotAllowedBranchError extends BaseError {
+  constructor(message: string) {
+    super(message);
+  }
+}
+
+export class GitPushError extends BaseError {
+  constructor(message = "Failed to push to remote repository.") {
+    super(message);
+  }
+}
+
+export class GitCommitError extends BaseError {
+  constructor(message = "Failed to commit changes.") {
+    super(message);
+  }
+}
+
+export class GitTagError extends BaseError {
+  constructor(message = "Failed to create git tag.") {
+    super(message);
+  }
+}
+
+export class GitBranchError extends BaseError {
+  constructor(
+    message = "Failed to determine current Git branch.",
+    public cause?: unknown,
+  ) {
+    super(message);
+  }
+}
+
+
+src/git-cliff.ts内容如下：
+
+import type { SpawnOptions } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { dirname, join,resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { arch as getArch, platform as getPlatform } from "os";
+import { parse, stringify } from "smol-toml";
+import { x } from "tinyexec";
+
+import type { NormalizedChangelogOptions } from "./config/types.ts";
+import { NAME } from "./constants.ts";
+import { outputFile, remove } from "./utils/fs.ts";
+import { defu } from "./utils/index.ts";
+
+const require = createRequire(import.meta.url);
+// 当前脚本所在目录
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const cacheDir = resolve(process.cwd(), "node_modules", `.${NAME}`);
+
+// 生成变更日志
+export async function runGitCliff(
+  options: NormalizedChangelogOptions,
+  spawnOptions: SpawnOptions = {},
+) {
+  const args = filterArgs(options.args);
+
+  const tmpConfigFile = await resolveTemplateConfig(options);
+
+  args.push(...["--config", tmpConfigFile]);
+
+  const bin = getExePath();
+
+  const { stdout } = await x(bin, args, {
+    nodeOptions: {
+      stdio: "pipe",
+      ...spawnOptions,
+    },
+    throwOnError: true,
+  });
+
+  await remove(cacheDir);
+  return stdout;
+}
+
+function filterArgs(args: string[]): string[] {
+  const skip = new Set(["--config", "-c"]);
+
+  const result: string[] = [];
+
+  for (const arg of args) {
+    if (arg.startsWith("--config=")) continue;
+
+    if (skip.has(arg)) {
+      continue;
+    }
+
+    result.push(arg);
+  }
+
+  return result;
+}
+
+async function resolveTemplateConfig(options: NormalizedChangelogOptions) {
+  const defaultTplPath = resolve(
+    __dirname,
+    "..",
+    "templates",
+    `${options.template}.toml`,
+  );
+
+  if (!existsSync(defaultTplPath)) {
+    throw new Error(`Default template file not found: ${defaultTplPath}`);
+  }
+
+  const defaultTplRaw = await readFile(defaultTplPath, "utf-8");
+  const defaultTplConfig = parse(defaultTplRaw);
+
+  const finalConfig = defu(options.config, defaultTplConfig);
+
+  const tmpFile = join(cacheDir, `gitcliff-${randomUUID()}.toml`);
+
+  await outputFile(tmpFile, stringify(finalConfig));
+
+  return tmpFile;
+}
+
+function getExePath() {
+  const platform = getPlatform();
+  const arch = getArch();
+
+  let os = platform as string;
+  let extension = "";
+
+  if (platform === "win32" || platform === "cygwin") {
+    os = "windows";
+    extension = ".exe";
+  }
+
+  try {
+    return require.resolve(`git-cliff-${os}-${arch}/bin/git-cliff${extension}`);
+  } catch (e) {
+    throw new Error(
+      `Couldn't find git-cliff binary inside node_modules for ${os}-${arch}`,
+      { cause: e },
+    );
+  }
+}
+
+
+src/index.ts内容如下：
+
+export * from "./options.ts";
+
+
+src/options.ts内容如下：
+
+import type { ConsolaInstance } from "consola";
+import type { ReleaseType } from "semver";
+
+export type ChangelogTemplate =
+  | "azure-devops-keepachangelog"
+  | "cocogitto"
+  | "detailed"
+  | "github-keepachangelog"
+  | "github"
+  | "keepachangelog"
+  | "minimal"
+  | "scoped"
+  | "scopesorted"
+  | "statistics"
+  | "unconventional"
+  | (string & {}); // 任意字符串，兼容远程链接
+
+type RemoteProviderConfig = {
+  owner?: string;
+  repo?: string;
+  token?: string;
+};
+
+// commit parser 类型
+export interface CommitParser {
+  message: string; // 正则或匹配字符串
+  group?: string; // 分组
+  default_scope?: string;
+  skip?: boolean; //默认跳过
+}
+
+export interface LinkParsers {
+  pattern?: string;
+  href?: string;
+}
+
+// git 配置
+export interface ChangelogGitConfig {
+  conventional_commits?: boolean;
+  filter_unconventional?: boolean;
+  require_conventional?: boolean;
+  split_commits?: boolean;
+  commit_parsers?: CommitParser[];
+  protect_breaking_commits?: false;
+  filter_commits?: boolean;
+  fail_on_unmatched_commit?: boolean;
+  tag_pattern?: string;
+  skip_tags?: string;
+  ignore_tags?: string;
+  topo_order?: boolean;
+  topo_order_commits?: boolean;
+  sort_commits?: "oldest" | "newest";
+  link_parsers?: LinkParsers[];
+  limit_commits?: number;
+  recurse_submodules?: boolean;
+  include_paths?: string[];
+  exclude_paths?: string[];
+}
+
+// changelog 内容配置
+export interface ChangelogContentConfig {
+  header?: string;
+  body?: string;
+  footer?: string;
+  trim?: boolean;
+}
+
+export interface ChangelogBumpConfig {
+  bump_type?: string;
+  features_always_bump_minor?: boolean;
+  breaking_always_bump_major?: boolean;
+  custom_major_increment_regex?: string;
+  custom_minor_increment_regex?: string;
+  initial_tag?: string;
+}
+
+// remote 配置
+export interface ChangelogRemoteConfig {
+  github?: RemoteProviderConfig;
+  azure_devops?: RemoteProviderConfig;
+  gitlab?: RemoteProviderConfig;
+  gitea?: RemoteProviderConfig;
+  bitbucket?: RemoteProviderConfig;
+}
+
+export interface ChangelogConfig {
+  bump?: ChangelogBumpConfig;
+  changelog?: ChangelogContentConfig;
+  git?: ChangelogGitConfig;
+  remote?: ChangelogRemoteConfig;
+}
+
+export type ChangelogOptions = {
+  args?: string | string[];
+  template?: ChangelogTemplate;
+  config?: ChangelogConfig;
+};
+
+type DistTag =
+  | "latest"
+  | "next"
+  | "beta"
+  | "alpha"
+  | "canary"
+  | "rc"
+  | (string & {}); // 允许自定义
+
+export type HookEvent =
+  | "before:init"
+  | "before:selectVersion"
+  | "after:selectVersion"
+  | "after:bump"
+  | "after:release"
+  | "before:selectTag"
+  | "after:selectTag"
+  | "before:changelog"
+  | "after:changelog"
+  | "before:bump"
+  | "before:git"
+  | "before:git.add"
+  | "after:git.add"
+  | "before:git.commit"
+  | "after:git.commit"
+  | "before:git.tag"
+  | "after:git.tag"
+  | "before:git.push"
+  | "after:git.push"
+  | "after:git";
+
+/**
+ * CLI运行时产生的一些配置
+ */
+export interface ReleaseContext {
+  name: string;
+  tag: string;
+  latestVersion: string;
+  version: string;
+  branchName: string;
+  git: {
+    changelog: string;
+    commitMessage: string;
+    tagName: string;
+  };
+  repo: {
+    remote: string;
+    protocol: string;
+    host: string;
+    owner: string;
+    repository: string;
+    project: string;
+  };
+  logger: ConsolaInstance;
+  cancel(message?: string): never;
+}
+
+export type HookFn = (context: ReleaseContext) => void | Promise<void>;
+
+export type Hook = HookFn | string | (HookFn | string)[];
+
+export type Hooks = Partial<Record<HookEvent, Hook>>;
+
+/**
+ * Options for smarty-release.
+ */
+export interface UserConfig {
+  /**
+   * 控制版本号递增类型（符合语义化版本 SemVer）
+   *
+   * @example
+   *  patch → 修复 bug（1.0.0 → 1.0.1）
+   *  minor → 新功能（1.0.0 → 1.1.0）
+   *  major → 破坏性更新（1.0.0 → 2.0.0）
+   */
+  increments?: ReleaseType[];
+
+  /**
+   * 发布时使用的 npm dist-tag
+   */
+  tags?: DistTag[];
+
+  /** 控制 Git 操作行为 */
+  git?: {
+    /** 变更日志是否生成 */
+    changelog?: false | ChangelogOptions;
+    requireBranch?: string | string[] | RegExp | false;
+    commitMessage?: string;
+    commitArgs?: string[];
+    tagName?: string;
+  };
+
+  /** 生命周期钩子 */
+  hooks?: Hooks;
+}
+
+/**
+ * 用于 `smarty-release` 配置文件：e.g.`smarty-release.config.*`
+ */
+export const defineConfig = (config: UserConfig) => config;
+
+
+src/release copy.ts内容如下：
+
+import { createSpinner } from "nanospinner";
+
+import { resolveConfig } from "./config/resolve.ts";
+import type { InlineConfig, ResolvedConfig } from "./config/types.ts";
+import { HOOKS } from "./constants.ts";
+import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
+import {
+  bump,
+  confirmChangelog,
+  createContext,
+  genChangelog,
+  gitAdd,
+  gitCommit,
+  gitPush,
+  gitTag,
+  selectTag,
+  selectVersion,
+  summary,
+} from "./steps/index.ts";
+import { runHook } from "./utils/hook.ts";
+import { effect, gitReset } from "./utils/index.ts";
+import { withTimer } from "./utils/timer.ts";
+import { hasChangelog } from "./utils/type.ts";
+
+export async function release(inlineConfig: InlineConfig = {}) {
+  // 处理参数
+  const config: ResolvedConfig = await resolveConfig(inlineConfig);
+  // 验证git仓库状态
+  await checkGitRepoStatus(config);
+  const context = await createContext(config);
+
+  try {
+    await withTimer(async () => {
+      // 流程开始
+
+      await effect(config, `run hook ${HOOKS.BEFORE_INIT}`, async () => {
+        await runHook(
+          HOOKS.BEFORE_INIT,
+          config.hooks?.[HOOKS.BEFORE_INIT],
+          context,
+        );
+      });
+
+      // 选择版本
+      await effect(
+        config,
+        `run hook ${HOOKS.BEFORE_SELECT_VERSION}`,
+        async () => {
+          await runHook(
+            HOOKS.BEFORE_SELECT_VERSION,
+            config.hooks?.[HOOKS.BEFORE_SELECT_VERSION],
+            context,
+          );
+        },
+      );
+
+      await selectVersion(config, context);
+
+      await effect(
+        config,
+        `run hook ${HOOKS.AFTER_SELECT_VERSION}`,
+        async () => {
+          await runHook(
+            HOOKS.AFTER_SELECT_VERSION,
+            config.hooks?.[HOOKS.AFTER_SELECT_VERSION],
+            context,
+          );
+        },
+      );
+
+      // 选择tag
+      await effect(config, `run hook ${HOOKS.BEFORE_SELECT_TAG}`, async () => {
+        await runHook(
+          HOOKS.BEFORE_SELECT_TAG,
+          config.hooks?.[HOOKS.BEFORE_SELECT_TAG],
+          context,
+        );
+      });
+
+      await selectTag(config, context);
+
+      await effect(config, `run hook ${HOOKS.AFTER_SELECT_TAG}`, async () => {
+        await runHook(
+          HOOKS.AFTER_SELECT_TAG,
+          config.hooks?.[HOOKS.AFTER_SELECT_TAG],
+          context,
+        );
+      });
+
+      // 变更日志
+      if (hasChangelog(config)) {
+        await effect(config, `run hook ${HOOKS.BEFORE_CHANGELOG}`, async () => {
+          await runHook(
+            HOOKS.BEFORE_CHANGELOG,
+            config.hooks?.[HOOKS.BEFORE_CHANGELOG],
+            context,
+          );
+        });
+
+        await genChangelog(config, context);
+
+        await effect(config, `run hook ${HOOKS.AFTER_CHANGELOG}`, async () => {
+          await runHook(
+            HOOKS.AFTER_CHANGELOG,
+            config.hooks?.[HOOKS.AFTER_CHANGELOG],
+            context,
+          );
+        });
+        await confirmChangelog(context);
+      }
+
+      // bump
+      await effect(config, `run hook ${HOOKS.BEFORE_BUMP}`, async () => {
+        await runHook(
+          HOOKS.BEFORE_BUMP,
+          config.hooks?.[HOOKS.BEFORE_BUMP],
+          context,
+        );
+      });
+
+      await effect(
+        config,
+        `bump version: ${context.latestVersion} → ${context.version}`,
+        async () => {
+          await bump(config, context);
+        },
+      );
+
+      await effect(config, `run hook ${HOOKS.AFTER_BUMP}`, async () => {
+        await runHook(
+          HOOKS.AFTER_BUMP,
+          config.hooks?.[HOOKS.AFTER_BUMP],
+          context,
+        );
+      });
+
+      // 总结阶段
+      await summary(context);
+
+      await effect(config, `run git operations and related hooks`, async () => {
+        const spinner = createSpinner("Releasing…").start();
+
+        // git系列
+        await runHook(
+          HOOKS.BEFORE_GIT,
+          config.hooks?.[HOOKS.BEFORE_GIT],
+          context,
+        );
+        // git 具体步骤
+        await runHook(
+          HOOKS.BEFORE_GIT_ADD,
+          config.hooks?.[HOOKS.BEFORE_GIT_ADD],
+          context,
+        );
+        await gitAdd();
+        await runHook(
+          HOOKS.AFTER_GIT_ADD,
+          config.hooks?.[HOOKS.AFTER_GIT_ADD],
+          context,
+        );
+        await runHook(
+          HOOKS.BEFORE_GIT_COMMIT,
+          config.hooks?.[HOOKS.BEFORE_GIT_COMMIT],
+          context,
+        );
+        await gitCommit(config, context);
+        await runHook(
+          HOOKS.AFTER_GIT_COMMIT,
+          config.hooks?.[HOOKS.AFTER_GIT_COMMIT],
+          context,
+        );
+
+        await runHook(
+          HOOKS.BEFORE_GIT_TAG,
+          config.hooks?.[HOOKS.BEFORE_GIT_TAG],
+          context,
+        );
+        await gitTag(context);
+        await runHook(
+          HOOKS.AFTER_GIT_TAG,
+          config.hooks?.[HOOKS.AFTER_GIT_TAG],
+          context,
+        );
+
+        await runHook(
+          HOOKS.BEFORE_GIT_PUSH,
+          config.hooks?.[HOOKS.BEFORE_GIT_PUSH],
+          context,
+        );
+        await gitPush(context);
+        await runHook(
+          HOOKS.AFTER_GIT_PUSH,
+          config.hooks?.[HOOKS.AFTER_GIT_PUSH],
+          context,
+        );
+
+        await runHook(
+          HOOKS.AFTER_GIT,
+          config.hooks?.[HOOKS.AFTER_GIT],
+          context,
+        );
+
+        // 流程走完之后
+        await runHook(
+          HOOKS.AFTER_RELEASE,
+          config.hooks?.[HOOKS.AFTER_RELEASE],
+          context,
+        );
+        spinner.stop();
+      });
+    });
+  } catch (err) {
+    await effect(config, `run git reset`, async () => {
+      await gitReset(context); // 回滚
+    });
+
+    throw err;
+  }
+}
+
+
+src/release.ts内容如下：
+
+import { resolveConfig } from "./config/resolve.ts";
+import type {
+  InlineConfig,
+  InternalReleaseContext,
+  ResolvedConfig,
+  Step,
+} from "./config/types.ts";
+import { checkGitRepoStatus } from "./steps/checkGitRepoStatus.ts";
+import { pipeline } from "./steps/config.ts";
+import { createContext } from "./steps/index.ts";
+import { runHook } from "./utils/hook.ts";
+import { effect, gitReset } from "./utils/index.ts";
+import { withTimer } from "./utils/timer.ts";
+
+export async function release(inlineConfig: InlineConfig = {}) {
+  // 处理参数
+  const config: ResolvedConfig = await resolveConfig(inlineConfig);
+  // 验证git仓库状态
+  await checkGitRepoStatus(config);
+  const context = await createContext(config);
+
+  try {
+    await withTimer(async () => {
+      await runPipeline(pipeline, config, context);
+    });
+  } catch (err) {
+    await effect(config, `run git reset`, async () => {
+      await gitReset(context); // 回滚
+    });
+
+    throw err;
+  }
+}
+
+async function runPipeline(
+  steps: Step[],
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  for (const step of steps) {
+    if (step.skip?.(context)) continue;
+
+    const runner = async () => {
+      await runHook(
+        `before:${step.name}`,
+        config.hooks?.[`before:${step.name}`],
+        context,
+      );
+
+      if (step.run) {
+        await step.run();
+      }
+
+      if (step.children) {
+        await runPipeline(step.children, config, context);
+      }
+
+      await runHook(
+        `after:${step.name}`,
+        config.hooks?.[`after:${step.name}`],
+        context,
+      );
+    };
+
+    // ⭐ 关键：只对副作用 step 使用 effect
+    if (step.effect) {
+      await effect(config, step.name, runner);
+    } else {
+      await runner();
+    }
+  }
+}
+
+
+src/steps/bump.ts内容如下：
+
+import { detect } from "package-manager-detector/detect";
+import { readPackageJSON, writePackageJSON } from "pkg-types";
+import { x } from "tinyexec";
+
+import type { InternalReleaseContext,ResolvedConfig } from "../config/types.ts";
+
+export async function bump(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  const pkg = await readPackageJSON(config.cwd);
+
+  pkg.version = context.version;
+
+  pkg.publishConfig = {
+    ...pkg.publishConfig,
+    tag: context.tag,
+  };
+
+  await writePackageJSON(`${config.cwd}/package.json`, pkg);
+
+  // 更新锁文件
+  const pm = await detect();
+  if (!pm) return;
+  await x(pm.agent, ["install"]);
+}
+
+
+src/steps/checkGitRepoStatus.ts内容如下：
+
+import type { ResolvedConfig } from "../config/types.ts";
+import {
+  GitDirtyError,
+  GitNotInstalledError,
+  GitRemoteNotFoundError,
+  NotGitRepoError,
+} from "../errors.js";
+import {
+  effect,
+  getGitRemoteUrl,
+  hasGit,
+  isGitClean,
+  isGitRepo,
+} from "../utils/index.ts";
+
+export async function checkGitRepoStatus(config: ResolvedConfig) {
+  // 检查是否安装过了git
+  const isGitInstalled = await hasGit();
+  if (!isGitInstalled) throw new GitNotInstalledError();
+  // 检查是否是一个git仓库
+  const isRepo = await isGitRepo();
+  if (!isRepo) throw new NotGitRepoError();
+
+  await effect(config, `check if working directory is clean`, async () => {
+    // 检查是否是一个干净的Git仓库
+    const isClean = await isGitClean();
+    if (!isClean) throw new GitDirtyError();
+  });
+
+  // 获取远程提交地址
+  const remoteUrl = await getGitRemoteUrl();
+  if (!remoteUrl) throw new GitRemoteNotFoundError();
+}
+
+
+src/steps/config.ts内容如下：
+
+import type { Step } from "../config/types.ts";
+
+export const pipeline: Step[] = [
+  {
+    name: "init",
+    run: () => Promise.resolve(), // 只是 hook
+  },
+
+  // {
+  //   name: "select_version",
+  //   run: async () => {
+  //     console.log("w");
+  //     return Promise.resolve();
+  //   },
+  // },
+  // {
+  //   name: "git",
+  //   effect: true,
+  // },
+];
+
+
+src/steps/confirmChangelog.ts内容如下：
+
+import { confirm } from "@inquirer/prompts";
+
+import type { InternalReleaseContext } from "../config/types.ts";
+
+export async function confirmChangelog(context: InternalReleaseContext) {
+  // 再来一个询问,询问用户变更日志是否正常
+  const normal = await confirm({
+    message: "Changelog generated. Does it look good?",
+    default: true,
+  });
+  if (normal === false) context.cancel();
+}
+
+
+src/steps/createContext.ts内容如下：
+
+import hostedGitInfo from "hosted-git-info";
+import { readPackageJSON } from "pkg-types";
+import semver from "semver";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+import {
+  CancelledError,
+  GitBranchError,
+  GitRemoteParseError,
+  NotAllowedBranchError,
+} from "../errors.ts";
+import {
+  getGitCurrentBranch,
+  getGitHead,
+  getGitRemoteUrl,
+  logger,
+  matchBranch,
+} from "../utils/index.js";
+
+export async function createContext(
+  config: ResolvedConfig,
+): Promise<InternalReleaseContext> {
+  // const context: InternalReleaseContext = Object.create(null);
+
+  const context = createEmptyObject<InternalReleaseContext>();
+
+  await collectGitContext(config, context);
+  await collectRepoContext(context);
+  await collectPackageContext(config, context);
+
+  context.initialRef = await getGitHead();
+
+  return {
+    ...context,
+    logger,
+    cancel(message?: string) {
+      throw new CancelledError(message);
+    },
+  };
+}
+
+async function collectPackageContext(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  const pkg = await readPackageJSON(config.cwd);
+
+  if (!pkg.name || pkg.name.trim() === "") {
+    throw new Error(`package.json "name" must be a non-empty string.`);
+  }
+
+  if (!pkg.version || !semver.valid(pkg.version)) {
+    throw new Error(`package.json "version" must be a valid semver version.`);
+  }
+
+  // 赋值给上下文
+  context.name = pkg.name;
+  context.latestVersion = pkg.version;
+}
+
+async function collectGitContext(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  const { requireBranch } = config.git;
+
+  try {
+    context.branchName = await getGitCurrentBranch();
+  } catch {
+    throw new GitBranchError();
+  }
+
+  if (!requireBranch) return; // 不需要校验分支 -> 直接跳过 git IO
+  if (!matchBranch(requireBranch, context.branchName)) {
+    throw new NotAllowedBranchError(
+      `Release is only allowed on ${String(requireBranch)}, current: ${context.branchName}`,
+    );
+  }
+}
+
+async function collectRepoContext(context: InternalReleaseContext) {
+  const remoteUrl = await getGitRemoteUrl();
+
+  const gitHost = hostedGitInfo.fromUrl(remoteUrl);
+
+  if (!gitHost) throw new GitRemoteParseError();
+
+  // 赋值给上下文
+  context.repo = {
+    ...context.repo,
+    remote: gitHost.https(),
+    protocol: gitHost.default === "ssh" ? "ssh" : "https",
+    host: gitHost.domain,
+    owner: gitHost.user,
+    repository: gitHost.project,
+    project: gitHost.project,
+  };
+}
+
+function createEmptyObject<T>() {
+  return Object.create(null) as T;
+}
+
+
+src/steps/genChangelog.ts内容如下：
+
+import mri from "mri";
+import { createSpinner } from "nanospinner";
+
+import type { InternalReleaseContext } from "../config/types.ts";
+import { OUTPUT_FLAGS } from "../constants.ts";
+import { GenerateChangelogError } from "../errors.ts";
+import { runGitCliff } from "../git-cliff.ts";
+import { logger, renderTemplate, runInDryRun } from "../utils/index.js";
+import type { ResolvedConfigWithChangelog } from "../utils/type.ts";
+
+export async function genChangelog(
+  config: ResolvedConfigWithChangelog,
+  context: InternalReleaseContext,
+) {
+  config.git.changelog.args = renderArgs(config.git.changelog.args, context);
+  const spinner = createSpinner("Generating changelog, please wait…").start();
+  try {
+    // dry-run模式下永远都把输出选项都移除掉
+    await runInDryRun(config, () => {
+      config.git.changelog.args = removeFlag(
+        config.git.changelog.args,
+        OUTPUT_FLAGS,
+      );
+    });
+
+    const stdout = await runGitCliff(config.git.changelog);
+
+    const cli = parseArgv(config.git.changelog.args);
+
+    const hasOutput = cli.hasFlag(OUTPUT_FLAGS);
+
+    if (hasOutput) {
+      const changelogFile = cli.getFlagValue<string | boolean>(OUTPUT_FLAGS);
+
+      context.git.changelog =
+        typeof changelogFile === "string" ? changelogFile : "CHANGELOG.md";
+    } else {
+      context.git.changelog = stdout;
+    }
+
+    // dryRun模式下直接打印在控制台上
+    await runInDryRun(config, `generate changelog`, () => {
+      logger.box(context.git.changelog);
+    });
+  } catch {
+    throw new GenerateChangelogError();
+  }
+  spinner.stop();
+}
+
+function renderArgs(args: string[], context: InternalReleaseContext) {
+  return args.map((v) => renderTemplate(v, context));
+}
+
+type FlagName = string | readonly string[];
+
+function isStringArray(x: FlagName): x is readonly string[] {
+  return Array.isArray(x);
+}
+
+function normalizeNames(name: FlagName): readonly string[] {
+  return isStringArray(name) ? name : [name];
+}
+
+function parseArgv(argv: string[]) {
+  const args = mri(argv);
+
+  return {
+    hasFlag(name: FlagName): boolean {
+      const names = normalizeNames(name);
+      return names.some((n) => args[n] !== undefined);
+    },
+
+    getFlagValue<T = unknown>(name: FlagName): T | undefined {
+      const names = normalizeNames(name);
+
+      for (const n of names) {
+        if (args[n] !== undefined) {
+          return args[n] as T;
+        }
+      }
+    },
+  };
+}
+
+function removeFlag(argv: string[], name: FlagName): string[] {
+  const names = normalizeNames(name);
+
+  const isFlag = (arg: string) =>
+    names.some(
+      (n) => arg === `-${n}` || arg === `--${n}` || arg.startsWith(`--${n}=`),
+    );
+
+  const result: string[] = [];
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+
+    if (isFlag(arg)) {
+      // 如果是 --xxx value 或 -x value
+      if (!arg.includes("=")) {
+        const next = argv[i + 1];
+        if (next && !next.startsWith("-")) {
+          i++; // 跳过 value
+        }
+      }
+      continue;
+    }
+
+    result.push(arg);
+  }
+
+  return result;
+}
+
+
+src/steps/git.ts内容如下：
+
+import { x } from "tinyexec";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+import { GitCommitError, GitPushError, GitTagError } from "../errors.ts";
+import { renderTemplate } from "../utils/index.ts";
+
+export async function gitAdd() {
+  await x("git", ["add", "."], {
+    throwOnError: true,
+  });
+}
+
+export async function gitCommit(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  const message = renderTemplate(config.git.commitMessage, context);
+
+  try {
+    await x("git", ["commit", ...config.git.commitArgs, "-m", message], {
+      throwOnError: true,
+    });
+  } catch {
+    throw new GitCommitError();
+  }
+}
+
+export async function gitTag(context: InternalReleaseContext) {
+  try {
+    await x("git", ["tag", "-f", context.git.tagName], {
+      throwOnError: true,
+    });
+  } catch {
+    throw new GitTagError();
+  }
+}
+
+export async function gitPush(context: InternalReleaseContext) {
+  try {
+    await x(
+      "git",
+      ["push", "origin", "HEAD", `refs/tags/${context.git.tagName}`],
+      {
+        throwOnError: true,
+      },
+    );
+  } catch {
+    throw new GitPushError();
+  }
+}
+
+
+src/steps/index.ts内容如下：
+
+export * from "./bump.ts";
+export * from "./confirmChangelog.ts";
+export * from "./createContext.ts";
+export * from "./genChangelog.ts";
+export * from "./git.ts";
+export * from "./selectTag.ts";
+export * from "./selectVersion.ts";
+export * from "./summary.ts";
+
+
+src/steps/selectTag.ts内容如下：
+
+import { select } from "@inquirer/prompts";
+import { prerelease } from "semver";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+
+type Choice = {
+  name: string;
+  value: string;
+  disabled?: boolean;
+};
+
+export async function selectTag(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  const isPrerelease = Boolean(prerelease(context.version));
+
+  const enabled: Choice[] = [];
+  const disabled: Choice[] = [];
+
+  for (const tag of config.tags) {
+    const item = {
+      name: tag,
+      value: tag,
+      disabled: isPrerelease && tag === "latest",
+    };
+    (item.disabled ? disabled : enabled).push(item);
+  }
+
+  const choices = [...enabled, ...disabled];
+
+  const tag = await select({
+    message: "What do you want to tag",
+    choices: choices,
+  });
+
+  if (!tag) context.cancel();
+
+  context.tag = tag;
+}
+
+
+src/steps/selectVersion.ts内容如下：
+
+import { input,select } from "@inquirer/prompts";
+import { gt,inc, prerelease, valid } from "semver";
+
+import type { InternalReleaseContext,ResolvedConfig } from "../config/types.ts";
+import { renderTemplate } from "../utils/index.ts";
+
+export async function selectVersion(
+  config: ResolvedConfig,
+  context: InternalReleaseContext,
+) {
+  let targetVersion;
+  const isPrerelease = prerelease(context.latestVersion);
+
+  // 构建版本选项
+  const choices = config.increments.map((type) => ({
+    name: `${type} (${inc(context.latestVersion, type)})`,
+    value: inc(context.latestVersion, type),
+  }));
+
+  // 如果当前是预发布版本，插入 prerelease 选项
+  if (isPrerelease) {
+    choices.unshift({
+      name: `prerelease (${inc(context.latestVersion, "prerelease")})`,
+      value: inc(context.latestVersion, "prerelease"),
+    });
+  }
+
+  // custom 始终放最后
+  choices.push({
+    name: "custom",
+    value: "custom",
+  });
+
+  const release = await select({
+    message: "What do you want to release",
+    choices,
+  });
+
+  if (!release) context.cancel();
+
+  targetVersion = release;
+
+  // 自定义版本号
+  if (release === "custom") {
+    const customVersion = await input({
+      message: "Input custom version",
+      default: context.latestVersion,
+      validate(value) {
+        const v = value.trim();
+
+        if (!valid(v)) {
+          return "Invalid semver version";
+        }
+
+        if (!gt(v, context.latestVersion)) {
+          return `Version must be greater than current version: ${context.latestVersion}`;
+        }
+
+        return true;
+      },
+    });
+
+    targetVersion = customVersion;
+  }
+
+  // 赋值给上下文
+  context.version = targetVersion;
+  context.git = {
+    ...context.git,
+    tagName: renderTemplate(config.git.tagName, context),
+    commitMessage: renderTemplate(config.git.commitMessage, context),
+  };
+}
+
+
+src/steps/summary.ts内容如下：
+
+import { confirm } from "@inquirer/prompts";
+import ansis from "ansis";
+
+import type { InternalReleaseContext } from "../config/types.ts";
+import { blank, gitChangeset } from "../utils/index.js";
+import { logger } from "../utils/index.js";
+
+export async function summary(context: InternalReleaseContext) {
+  const summary = {
+    Version: context.version,
+    "Npm Dist Tag": context.tag,
+    Owner: context.repo.owner,
+    Repository: context.repo.repository,
+    Branch: context.branchName,
+    "Git Tag": context.git.tagName,
+  };
+
+  await renderSection("Summary:", () => {
+    renderKeyValue(summary);
+  });
+
+  await renderSection("Changeset:", async () => {
+    await gitChangeset();
+  });
+
+  blank();
+
+  const ok = await confirm({
+    message: `Releasing v${context.version} on ${context.tag}. Confirm?`,
+    default: false,
+  });
+
+  if (ok === false) context.cancel();
+}
+
+function renderSection(title: string, fn: () => Promise<void> | void) {
+  blank();
+  logger.log(ansis.cyan(title));
+  return fn();
+}
+
+function renderKeyValue(data: Record<string, string>) {
+  const maxKeyLength = Math.max(...Object.keys(data).map((k) => k.length));
+
+  for (const [key, val] of Object.entries(data)) {
+    logger.log(ansis.green(key.padEnd(maxKeyLength + 2)), ansis.yellow(val));
+  }
+}
+
+
+src/utils/fs.ts内容如下：
+
+import { promises as fs } from "node:fs";
+import { dirname } from "node:path";
+
+export const remove = (p: string) => fs.rm(p, { recursive: true, force: true });
+
+export const outputFile = async (file: string, data: string | Uint8Array) => {
+  await fs.mkdir(dirname(file), { recursive: true });
+  await fs.writeFile(file, data);
+};
+export const pathExists = async (path: string): Promise<boolean> => {
+  try {
+    await fs.access(path);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+
+src/utils/hook.ts内容如下：
+
+import { Listr } from "listr2";
+import { x } from "tinyexec";
+
+import type { HookItems, InternalReleaseContext } from "../config/types.ts";
+import type { HookFn } from "../options.ts";
+import { renderTemplate } from "./index.ts";
+
+export async function runHook(
+  hookName: string,
+  hooks?: HookItems,
+  context?: InternalReleaseContext,
+) {
+  if (!hooks?.length || !context) return;
+
+  const tasks = new Listr(
+    {
+      title: `${hookName} (${hooks.length} hooks)`,
+      task: () =>
+        new Listr(
+          hooks.map((hook, index) => {
+            const title = getHookTitle(hook, index, context);
+
+            return {
+              title,
+              task: async () => {
+                if (typeof hook === "string") {
+                  const cmd = renderTemplate(hook, context);
+
+                  await x(cmd, [], {
+                    nodeOptions: {
+                      shell: true,
+                      stdio: "pipe",
+                    },
+                  });
+                } else {
+                  const { initialRef: _, ...publicCtx } = context;
+
+                  // 静默函数输出
+                  await muteStdout(() => hook(publicCtx));
+                }
+              },
+            };
+          }),
+          {
+            concurrent: false, // 顺序执行子任务
+          },
+        ),
+    },
+    {
+      concurrent: false,
+    },
+  );
+
+  await tasks.run();
+}
+
+function getHookTitle(
+  hook: HookFn | string,
+  index: number,
+  context: InternalReleaseContext,
+) {
+  if (typeof hook === "string") {
+    return renderTemplate(hook, context);
+  }
+
+  const name = hook.name?.trim();
+
+  if (name) {
+    return `fn:${name}`;
+  }
+
+  return `fn:<anonymous-${index + 1}>`;
+}
+
+async function muteStdout<T>(fn: () => Promise<T> | T): Promise<T> {
+  const stdoutWrite = process.stdout.write.bind(process.stdout);
+  const stderrWrite = process.stderr.write.bind(process.stderr);
+
+  const noop: typeof process.stdout.write = (..._args) => true;
+
+  process.stdout.write = noop;
+  process.stderr.write = noop;
+
+  try {
+    return await fn();
+  } finally {
+    process.stdout.write = stdoutWrite;
+    process.stderr.write = stderrWrite;
+  }
+}
+
+
+src/utils/index.ts内容如下：
+
+import ansis from "ansis";
+import { createConsola } from "consola";
+import { createDefu } from "defu";
+import { x } from "tinyexec";
+import type { Get } from "type-fest";
+
+import type {
+  InternalReleaseContext,
+  ResolvedConfig,
+} from "../config/types.ts";
+import { dryRunPrefix, NAME } from "../constants.ts";
+
+type RequireBranch = Get<ResolvedConfig, "git.requireBranch">;
+
+export async function getGitHead(): Promise<string> {
+  const { stdout } = await x("git", ["rev-parse", "HEAD"], {
+    throwOnError: true,
+  });
+  return stdout.trim();
+}
+
+export async function gitReset(context: InternalReleaseContext) {
+  if (!context.initialRef) return;
+
+  const tagName = context.git?.tagName;
+
+  if (tagName) {
+    // 删除可能已经创建的tag
+    await x("git", ["tag", "-d", tagName]);
+  }
+
+  await x("git", ["reset", "--hard", context.initialRef]);
+}
+
+export const logger = createConsola({
+  defaults: {
+    tag: NAME,
+  },
+});
+
+export const defu = createDefu((obj, key, value) => {
+  if (Array.isArray(obj[key]) && Array.isArray(value)) {
+    obj[key] = value; // 直接覆盖
+    return true;
+  }
+});
+
+export async function gitChangeset() {
+  await x("git", ["status", "--porcelain"], {});
+}
+
+export async function isGitRepo() {
+  try {
+    const { stdout } = await x("git", ["rev-parse", "--is-inside-work-tree"], {
+      throwOnError: true,
+    });
+    return stdout.trim() === "true";
+  } catch {
+    return false;
+  }
+}
+
+export async function isGitClean() {
+  const { stdout } = await x("git", ["status", "--porcelain"]);
+  return stdout.trim().length === 0;
+}
+
+export async function hasGit() {
+  try {
+    await x("git", ["--version"], { throwOnError: true });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getGitRemoteUrl(): Promise<string> {
+  try {
+    const { stdout } = await x("git", ["remote", "get-url", "origin"], {
+      throwOnError: true,
+    });
+    return stdout.trim();
+  } catch {
+    return "";
+  }
+}
+
+export function renderTemplate(
+  template: string,
+  context: InternalReleaseContext,
+): string {
+  if (typeof template !== "string") {
+    throw new TypeError("Template must be a string");
+  }
+
+  return template.replace(/\$\{([^}]+)\}/g, (_, expr: string) => {
+    const value = expr.split(".").reduce<unknown>((acc, key) => {
+      if (acc && typeof acc === "object") {
+        return (acc as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, context);
+
+    if (value == null) {
+      throw new Error(`Template variable "${expr}" is not defined`);
+    }
+
+    if (
+      typeof value !== "string" &&
+      typeof value !== "number" &&
+      typeof value !== "boolean"
+    ) {
+      throw new TypeError(
+        `Template variable "${expr}" must be a primitive value`,
+      );
+    }
+
+    return String(value);
+  });
+}
+
+export function blank(lines: number = 1): void {
+  process.stdout.write("\n".repeat(lines));
+}
+
+export function matchBranch(rule: RequireBranch, current: string): boolean {
+  if (rule === false) return true;
+
+  if (typeof rule === "string") {
+    return current === rule;
+  }
+
+  if (Array.isArray(rule)) {
+    return rule.includes(current);
+  }
+
+  if (rule instanceof RegExp) {
+    return rule.test(current);
+  }
+
+  return false;
+}
+
+export async function getGitCurrentBranch(): Promise<string> {
+  const { stdout } = await x("git", ["symbolic-ref", "--short", "HEAD"], {
+    throwOnError: true,
+  });
+  return stdout.trim();
+}
+
+export function getCommandRawArgs(
+  rawArgs: string[],
+  commandNames: string[],
+): string[] {
+  const idx = rawArgs.findIndex((arg) => commandNames.includes(arg));
+
+  return idx === -1 ? [] : rawArgs.slice(idx + 1);
+}
+
+export function effect<T>(
+  config: ResolvedConfig,
+  desc: string | null,
+  fn: () => T | Promise<T>,
+) {
+  if (config.dryRun) {
+    logger.info(ansis.yellow(`${dryRunPrefix}${desc}`));
+    return;
+  }
+  return Promise.resolve().then(fn);
+}
+
+export function runInDryRun<T>(
+  config: ResolvedConfig,
+  fn: () => T | Promise<T>,
+): Promise<T | undefined>;
+export function runInDryRun<T>(
+  config: ResolvedConfig,
+  desc: string,
+  fn: () => T | Promise<T>,
+): Promise<T | undefined>;
+export function runInDryRun<T>(
+  config: ResolvedConfig,
+  arg1: string | (() => T | Promise<T>),
+  arg2?: () => T | Promise<T>,
+): Promise<T | undefined> {
+  if (!config.dryRun) {
+    return Promise.resolve(undefined);
+  }
+
+  let fn: () => T | Promise<T>;
+  let desc: string | undefined;
+
+  if (typeof arg1 === "function") {
+    fn = arg1;
+  } else {
+    desc = arg1;
+    fn = arg2!;
+  }
+
+  if (desc) {
+    logger.info(ansis.yellow(`${dryRunPrefix}${desc}`));
+  }
+
+  return Promise.resolve().then(fn);
+}
+
+
+src/utils/timer.ts内容如下：
+
+import ansis from "ansis";
+
+import { logger } from "./index.ts";
+export async function withTimer<T>(fn: () => Promise<T>): Promise<T> {
+  const start = performance.now();
+  const result = await fn();
+  const cost = formatDuration(performance.now() - start);
+  logger.log(ansis.green(`🎉 Released successfully! (in ${cost})`));
+  return result;
+}
+
+function formatDuration(ms: number) {
+  if (ms < 1000) return `${ms.toFixed(0)}ms`;
+
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(2)}s`;
+
+  const m = Math.floor(s / 60);
+  const rest = (s % 60).toFixed(1);
+  return `${m}m ${rest}s`;
+}
+
+
+src/utils/type.ts内容如下：
+
+import type { MergeDeep } from "type-fest";
+
+import type {
+  NormalizedChangelogOptions,
+  ResolvedConfig,
+} from "../config/types.ts";
+
+export type ResolvedConfigWithChangelog = MergeDeep<
+  ResolvedConfig,
+  {
+    git: {
+      changelog: NormalizedChangelogOptions;
+    };
+  }
+>;
+
+export function hasChangelog(
+  config: ResolvedConfig,
+): config is ResolvedConfigWithChangelog {
+  return config.git.changelog !== false;
+}
+export type PickProp<T, K extends keyof T> = T[K];
+
