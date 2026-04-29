@@ -158,27 +158,39 @@ exports default {
 
 == JSON（In package.json）
 
-```json{5-20}
+```json
 {
   "name": "you-awesome-project",
   "version": "1.8.1",
   // ...
+  // [!code ++]
   "smarty-release": {
+    // [!code ++]
     "increments": ["patch", "minor", "major"],
+    // [!code ++]
     "tags": ["latest", "next"],
+    // [!code ++]
     "git": {
+      // [!code ++]
       "requireBranch": "main",
+      // [!code ++]
       "commitMessage": "release: v${version}",
+      // [!code ++]
       "tagName": "v${version}",
+      // [!code ++]
       "changelog": {
+        // [!code ++]
         "args": "-o --tag ${version}",
+        // [!code ++]
         "template": "github"
-      }
-    },
+      } // [!code ++]
+    }, // [!code ++]
+    // [!code ++]
     "hooks": {
+      // [!code ++]
       "before:init": "pnpm test"
-    }
-  }
+    } // [!code ++]
+  } // [!code ++]
 }
 ```
 
