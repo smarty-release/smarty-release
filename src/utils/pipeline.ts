@@ -1,8 +1,11 @@
+import { defu } from "defu";
+
 import type {
   InternalReleaseContext,
   ResolvedConfig,
   Step,
 } from "../config/types.ts";
+import { HOOKS } from "../constants.ts";
 import {
   bump,
   confirmChangelog,
@@ -13,79 +16,46 @@ import {
 import { runHook } from "../utils/hook.ts";
 import { effect, hasChangelog } from "../utils/index.ts";
 
-export const pipeline: Step[] = [
+const steps: Step[] = [
   {
-    name: "init",
+    beforeHook: HOOKS.BEFORE_INIT,
+    effect: `run hook ${HOOKS.BEFORE_INIT}`,
   },
   {
-    name: "selectVersion",
-    effect: false,
-    run: async (config, context) => {
-      await selectVersion(config, context);
-    },
+    beforeHook: HOOKS.BEFORE_SELECT_VERSION,
+    afterHook: HOOKS.AFTER_SELECT_VERSION,
+    run: selectVersion,
+    effect: `run hook ?`, // 这里就只能对这整个步骤进行dryrun模式打印
   },
   {
-    name: "selectTag",
-    effect: false,
-    run: async (config, context) => {
-      await selectTag(config, context);
-    },
-  },
-  {
-    name: "changelog",
-    effect: false,
-    run: async (config, context) => {
-      if (!hasChangelog(config)) return;
-      await genChangelog(config, context);
-    },
-  },
-  {
-    effect: false,
-    run: async (config, context) => {
-      if (!hasChangelog(config)) return;
-      await confirmChangelog(context);
-    },
-  },
-  {
-    name: "bump",
-    effect: false,
-    run: async (config, context) => {
-      await bump(config, context);
-    },
-  },
-  {
-    name: "release",
+    afterHook: HOOKS.AFTER_RELEASE,
+    effect: `run hook ${HOOKS.AFTER_RELEASE}`,
   },
 ];
 
-export async function runPipeline(
-  steps: Step[],
+export async function runStep(
   config: ResolvedConfig,
-  context: InternalReleaseContext,
+  ctx: InternalReleaseContext,
 ) {
   for (const step of steps) {
-    const stepName = step.name;
+    const runner = async () => {
+      if (step.beforeHook) {
+        await runHook(step.beforeHook, config.hooks?.[step.beforeHook], ctx);
+      }
 
-    if (!stepName) {
-      // 直接运行
-      await step.run(config, context);
-      continue;
+      if (step.run) {
+        await step.run(config, ctx);
+      }
+
+      if (step.afterHook) {
+        await runHook(step.afterHook, config.hooks?.[step.afterHook], ctx);
+      }
+    };
+
+    if (!step.effect) {
+      await runner();
+    } else {
+      await effect(config, step.effect, runner);
     }
-
-    await effect(config, `run hook ${stepName}`, async () => {
-      await runHook(
-        `before:${stepName}`,
-        config.hooks?.[`before:${stepName}`],
-        context,
-      );
-    });
-
-    await effect(config, `run hook ${stepName}`, async () => {
-      await runHook(
-        `after:${stepName}`,
-        config.hooks?.[`after:${stepName}`],
-        context,
-      );
-    });
   }
 }

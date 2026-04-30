@@ -107,8 +107,7 @@ type DistTag =
 
 export type HookPrefix = "before" | "after";
 
-export type StepName =
-  | "init"
+type StepName =
   | "selectVersion"
   | "selectTag"
   | "changelog"
@@ -117,10 +116,13 @@ export type StepName =
   | "git.add"
   | "git.commit"
   | "git.tag"
-  | "git.push"
-  | "release";
+  | "git.push";
 
-export type HookEvent = `before:${StepName}` | `after:${StepName}`;
+export type HookEvent =
+  | "before:init"
+  | `before:${StepName}`
+  | `after:${StepName}`
+  | `after:release`;
 
 /**
  * CLI运行时产生的一些配置

@@ -5,7 +5,6 @@ import type {
   Hook,
   HookEvent,
   ReleaseContext,
-  StepName,
   UserConfig,
 } from "../options.ts";
 
@@ -42,20 +41,9 @@ export type ResolvedConfig = MergeDeep<
   }
 >;
 
-export type Step =
-  | {
-      name: StepName;
-      run?: (
-        config: ResolvedConfig,
-        ctx: InternalReleaseContext,
-      ) => Promise<void>;
-      effect?: boolean;
-    }
-  | {
-      name?: undefined;
-      run: (
-        config: ResolvedConfig,
-        ctx: InternalReleaseContext,
-      ) => Promise<void>;
-      effect?: boolean;
-    };
+export type Step = {
+  run?: (config: ResolvedConfig, ctx: InternalReleaseContext) => Promise<void>;
+  beforeHook?: HookEvent;
+  afterHook?: HookEvent;
+  effect?: false | string;
+};
